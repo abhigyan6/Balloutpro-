@@ -1,0 +1,11 @@
+{
+  "name": "BallOut - Local Cricket DRS",
+  "description": "AI-Powered Third Umpire and Decision Review System for local cricket matches, featuring video analysis and automated decision tracking.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "Video Analysis",
+    "Real-time Decision Support"
+  ]
+}

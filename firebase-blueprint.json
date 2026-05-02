@@ -1,0 +1,52 @@
+{
+  "entities": {
+    "Decision": {
+      "title": "DRS Decision",
+      "description": "A record of a DRS decision in a cricket match",
+      "type": "object",
+      "properties": {
+        "match_id": { "type": "string", "description": "The ID of the match" },
+        "batsman": { "type": "string", "description": "Name of the batsman" },
+        "bowler": { "type": "string", "description": "Name of the bowler" },
+        "decision_type": { "type": "string", "description": "Type of decision (LBW, Run-out, Edge Detection)" },
+        "result": { "type": "string", "description": "The final verdict (OUT, NOT OUT, UMPIRE'S CALL)" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "When the decision was made" },
+        "details": {
+          "type": "object",
+          "properties": {
+            "pitching": { "type": "string" },
+            "impact": { "type": "string" },
+            "wickets": { "type": "string" }
+          }
+        }
+      },
+      "required": ["match_id", "batsman", "bowler", "decision_type", "result", "timestamp"]
+    },
+    "Match": {
+      "title": "Match Stats",
+      "description": "Statistics and metadata for a cricket match",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "stats": {
+          "type": "object",
+          "properties": {
+            "total_decisions": { "type": "number" },
+            "out_count": { "type": "number" },
+            "not_out_count": { "type": "number" }
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "/decisions/{decisionId}": {
+      "schema": "Decision",
+      "description": "Store individual DRS decisions"
+    },
+    "/matches/{matchId}": {
+      "schema": "Match",
+      "description": "Store match stats and metadata"
+    }
+  }
+}

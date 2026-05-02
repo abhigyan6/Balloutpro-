@@ -1,0 +1,48 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Helpers
+    function isSignedIn() { return request.auth != null; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // Decision Validation
+    function isValidDecision(data) {
+      return data.keys().hasAll(['match_id', 'batsman', 'bowler', 'decision_type', 'result', 'timestamp']) &&
+             data.keys().size() >= 6 &&
+             data.match_id is string && data.match_id.size() <= 64 &&
+             data.batsman is string && data.batsman.size() <= 100 &&
+             data.bowler is string && data.bowler.size() <= 100 &&
+             data.decision_type in ['LBW', 'Run-out', 'Edge Detection'] &&
+             data.result in ['OUT', 'NOT OUT', "UMPIRE'S CALL"] &&
+             data.timestamp == request.time;
+    }
+
+    match /decisions/{decisionId} {
+      allow read: if true; // Publicly viewable for local matches
+      allow create: if isSignedIn() && isValidDecision(incoming()) && isValidId(decisionId);
+      allow update: if false; // Decisions are immutable once recorded
+      allow delete: if false; // Archive only
+    }
+
+    // Match Validation
+    function isValidMatch(data) {
+      return data.keys().hasAll(['stats', 'updatedAt']) &&
+             data.stats is map &&
+             data.updatedAt == request.time &&
+             (data.name == null || (data.name is string && data.name.size() <= 200));
+    }
+
+    match /matches/{matchId} {
+      allow read: if true;
+      allow create, update: if isSignedIn() && isValidMatch(incoming()) && isValidId(matchId);
+      allow delete: if false;
+    }
+  }
+}

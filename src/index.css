@@ -1,0 +1,77 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-brand: #4f46e5; /* Indigo 600 */
+  --color-brand-hover: #6366f1; /* Indigo 500 */
+  --color-drs-red: #dc2626;
+  --color-drs-green: #4ade80;
+  --color-drs-bg: #0B0F19;
+  --color-drs-card: #111827;
+  --color-drs-border: #1e293b; /* Slate 800 */
+}
+
+body {
+  @apply bg-drs-bg text-slate-100 font-sans antialiased;
+  background-image: 
+    radial-gradient(circle at 50% -20%, #1e1e24 0%, transparent 60%),
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 100% 100%, 40px 40px, 40px 40px;
+}
+
+/* Custom Scrollbar */
+.no-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.no-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.no-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-drs-border);
+  border-radius: 10px;
+}
+
+.no-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-brand);
+}
+
+.drs-gradient-bg {
+  background: radial-gradient(circle at 50% -20%, #1e1e24 0%, transparent 60%);
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(74, 222, 128, 0.2); }
+  50% { box-shadow: 0 0 40px rgba(74, 222, 128, 0.6); }
+}
+
+.scanline {
+  @apply absolute inset-0 pointer-events-none overflow-hidden h-full w-full z-10;
+  background: linear-gradient(to bottom, transparent, rgba(79, 70, 229, 0.1), transparent);
+  animation: scanline 4s linear infinite;
+}
+
+.verdict-out {
+  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+.verdict-not-out {
+  animation: glow-pulse 2s infinite;
+}
