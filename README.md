@@ -2,7 +2,7 @@
 
 **Balloutpro** is an AI-powered cricket decision assistant that automates umpiring decisions for LBW, Run-outs, and Edge Detection. Built with Google Gemini AI and Firebase, it delivers real-time, accurate decisions to enhance the game experience.
 
-> 🔗 **Live App:** [View on AI Studio](https://ai.studio/apps/bf11456e-eb18-4529-b50a-ef9de0fd8e02)
+> 🔗 **Live App:** [View on AI Studio](https://ais-dev-tunpgfnv7ofbip3e2vgcd2-638838999573.asia-east1.run.app/)
 
 ---
 
