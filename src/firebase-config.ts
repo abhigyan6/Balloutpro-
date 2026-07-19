@@ -29,12 +29,27 @@ const firebaseConfig = {
 
 // Initialize Firebase
 export const app = initializeApp(firebaseConfig);
-export const analytics = getAnalytics(app);
+
+// Analytics may fail if config is invalid/placeholder — guard it
+let analytics: ReturnType<typeof getAnalytics> | null = null;
+try {
+  if (firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('your_')) {
+    analytics = getAnalytics(app);
+  }
+} catch (e) {
+  console.warn('Firebase Analytics initialization skipped:', e);
+}
+export { analytics };
+
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 
-// Connectivity check
+// Connectivity check — only run if config looks real
 async function testConnection() {
+  if (!firebaseConfig.projectId || firebaseConfig.projectId.startsWith('your_')) {
+    console.warn('Firebase not configured — skipping connectivity check. Update your .env file with real Firebase credentials.');
+    return;
+  }
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {
@@ -83,6 +98,10 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 
+function isFirebaseConfigured(): boolean {
+  return !!(firebaseConfig.projectId && !firebaseConfig.projectId.startsWith('your_'));
+}
+
 /**
  * Saves a DRS decision to Firestore
  */
@@ -94,6 +113,10 @@ export async function saveDecision(decisionData: {
   result: Verdict;
   details: any;
 }) {
+  if (!isFirebaseConfigured()) {
+    console.warn('Firebase not configured — decision not saved.');
+    return 'local-' + Date.now();
+  }
   const path = 'decisions';
   try {
     const docRef = await addDoc(collection(db, path), {
@@ -110,6 +133,10 @@ export async function saveDecision(decisionData: {
  * Fetches recent decisions
  */
 export async function getRecentDecisions(limitCount: number = 10) {
+  if (!isFirebaseConfigured()) {
+    console.warn('Firebase not configured — returning empty history.');
+    return [];
+  }
   const path = 'decisions';
   try {
     const q = query(
@@ -131,6 +158,10 @@ export async function getRecentDecisions(limitCount: number = 10) {
  * Updates match statistics
  */
 export async function updateMatchStats(matchId: string, stats: any) {
+  if (!isFirebaseConfigured()) {
+    console.warn('Firebase not configured — stats not saved.');
+    return;
+  }
   const path = `matches/${matchId}`;
   try {
     const matchRef = doc(db, 'matches', matchId);

@@ -23,7 +23,8 @@ import {
 } from 'lucide-react';
 import { DecisionStatus, Verdict } from './types';
 import { saveDecision, getRecentDecisions } from './firebase-config';
-import { extractFrames, analyzeVideoWithGemini } from './services/geminiService';
+import { extractFrames, analyzeVideoWithGemini, getVerdictFromResult } from './services/geminiService';
+import type { AnalysisResult } from './services/geminiService';
 
 export default function App() {
   const [status, setStatus] = useState<DecisionStatus>(DecisionStatus.IDLE);
@@ -33,6 +34,8 @@ export default function App() {
   const [progress, setProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [confidence, setConfidence] = useState<number | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [reasoning, setReasoning] = useState<string>('');
   const [isLive, setIsLive] = useState(false);
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
@@ -160,6 +163,8 @@ export default function App() {
     setVerdict(null);
     setProgress(0);
     setConfidence(null);
+    setAnalysisResult(null);
+    setReasoning('');
 
     // Smooth progress simulation
     const progressInterval = setInterval(() => {
@@ -170,6 +175,7 @@ export default function App() {
       let finalVerdict: Verdict = Verdict.NOT_OUT;
       let aiConfidence: number = 0;
       let aiReasoning: string = "Manual analysis completed.";
+      let result: AnalysisResult | null = null;
       let frames: string[] = [];
 
       if (isLive && videoRef.current) {
@@ -179,36 +185,55 @@ export default function App() {
             if (videoRef.current) videoRef.current.onloadedmetadata = r;
           });
         }
-        // Capture frames from live stream
+        // Capture 8 frames from live stream over 1.6s for better coverage
         const canvas = document.createElement('canvas');
         canvas.width = videoRef.current.videoWidth;
         canvas.height = videoRef.current.videoHeight;
         const ctx = canvas.getContext('2d');
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 8; i++) {
           if (ctx) {
             ctx.drawImage(videoRef.current, 0, 0);
-            frames.push(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
+            frames.push(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]);
           }
           await new Promise(r => setTimeout(r, 200));
         }
       } else if (selectedFile) {
-        frames = await extractFrames(selectedFile, 5);
+        frames = await extractFrames(selectedFile, 8);
       }
 
       if (frames.length > 0) {
-        const result = await analyzeVideoWithGemini(frames);
-        finalVerdict = result.out ? Verdict.OUT : Verdict.NOT_OUT;
+        // Pass the active decision type so the AI uses the right prompt
+        result = await analyzeVideoWithGemini(frames, activeTab);
+        finalVerdict = getVerdictFromResult(result, activeTab);
         aiConfidence = result.confidence;
         aiReasoning = result.reasoning;
       } else if (!isLive && !selectedFile) {
-        // MOCK ANALYSIS (if no file is uploaded and not live)
-        const verdicts = [Verdict.OUT, Verdict.NOT_OUT, Verdict.UMPIRES_CALL];
-        finalVerdict = verdicts[Math.floor(Math.random() * verdicts.length)];
-        aiConfidence = Math.floor(Math.random() * 20) + 75;
+        // DEMO MODE — generate realistic mock data based on decision type
+        const mockResult = generateMockAnalysis(activeTab);
+        result = mockResult.result;
+        finalVerdict = mockResult.verdict;
+        aiConfidence = mockResult.result.confidence;
+        aiReasoning = mockResult.result.reasoning;
       }
 
       clearInterval(progressInterval);
       setProgress(100);
+
+      // Build decision details from actual AI analysis
+      const details: any = { reasoning: aiReasoning };
+      if (result?.lbw_details) {
+        details.pitching = result.lbw_details.pitching;
+        details.impact = result.lbw_details.impact;
+        details.wickets = result.lbw_details.wickets;
+      } else if (result?.runout_details) {
+        details.batsman_grounded = result.runout_details.batsman_in_crease;
+        details.stumps_broken = result.runout_details.stumps_broken;
+        details.margin_cm = result.runout_details.margin_cm;
+      } else if (result?.edge_details) {
+        details.bat_involved = result.edge_details.bat_involved;
+        details.spike_detected = result.edge_details.spike_detected;
+        details.hotspot_detected = result.edge_details.hotspot_detected;
+      }
 
       const decisionData = {
         match_id: 'LOCAL_BHOPAL_M1',
@@ -216,25 +241,31 @@ export default function App() {
         bowler: 'S. Khan',
         decision_type: activeTab,
         result: finalVerdict as Verdict,
-        details: {
-          pitching: 'In Line',
-          impact: 'In Line',
-          wickets: finalVerdict === Verdict.OUT ? 'Hitting' : 'Missing',
-          reasoning: aiReasoning
-        }
+        details
       };
 
       setVerdict(finalVerdict);
       setConfidence(aiConfidence);
+      setAnalysisResult(result);
+      setReasoning(aiReasoning);
       setStatus(DecisionStatus.COMPLETED);
 
-      // Confetti on completion
-      confetti({
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: finalVerdict === Verdict.OUT ? ['#dc2626', '#ffffff'] : ['#4ade80', '#ffffff']
-      });
+      // Confetti on completion — different effects per verdict
+      if (finalVerdict === Verdict.UMPIRES_CALL) {
+        confetti({
+          particleCount: 80,
+          spread: 50,
+          origin: { y: 0.6 },
+          colors: ['#f59e0b', '#fbbf24', '#ffffff']
+        });
+      } else {
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: finalVerdict === Verdict.OUT ? ['#dc2626', '#ffffff'] : ['#4ade80', '#ffffff']
+        });
+      }
 
       // Save to Firebase
       await saveDecision(decisionData);
@@ -249,12 +280,71 @@ export default function App() {
     }
   };
 
+  /** Generates realistic mock analysis data for demo mode */
+  function generateMockAnalysis(type: 'LBW' | 'Run-out' | 'Edge Detection'): { result: AnalysisResult; verdict: Verdict } {
+    const r = Math.random();
+    
+    if (type === 'LBW') {
+      const scenarios = [
+        { pitching: 'In Line' as const, impact: 'In Line' as const, wickets: 'Hitting' as const, conf: 82, out: true, reasoning: 'Ball pitched in line, struck pad in line with the stumps. Ball tracking shows the delivery going on to hit middle and leg stump. Decision: OUT.' },
+        { pitching: 'In Line' as const, impact: 'In Line' as const, wickets: 'Clipping' as const, conf: 48, out: false, reasoning: 'Ball pitched in line and impact was in line, but ball tracking shows only marginal contact with leg stump bail. Within the Umpire\'s Call zone.' },
+        { pitching: 'Outside Off' as const, impact: 'In Line' as const, wickets: 'Missing' as const, conf: 76, out: false, reasoning: 'Ball pitched outside off stump, straightened after pitching. Impact in line but ball tracking shows the delivery going over the stumps. Decision: NOT OUT.' },
+        { pitching: 'Outside Leg' as const, impact: 'In Line' as const, wickets: 'Hitting' as const, conf: 91, out: false, reasoning: 'Ball pitched outside leg stump. Under ICC rules, cannot be given out LBW regardless of other factors. Decision: NOT OUT.' },
+        { pitching: 'In Line' as const, impact: 'Outside Off' as const, wickets: 'Hitting' as const, conf: 70, out: false, reasoning: 'Ball pitched in line but impact was outside the line of off stump. Batsman was playing a shot. Decision: NOT OUT.' },
+      ];
+      const s = scenarios[Math.floor(r * scenarios.length)];
+      const result: AnalysisResult = {
+        decision_type: 'LBW', is_out: s.out, confidence: s.conf, reasoning: s.reasoning,
+        lbw_details: { pitching: s.pitching, impact: s.impact, wickets: s.wickets, ball_tracking_confidence: s.conf + Math.floor(Math.random() * 10) - 5 },
+        runout_details: null, edge_details: null
+      };
+      const verdict = s.wickets === 'Clipping' ? Verdict.UMPIRES_CALL : (s.out ? Verdict.OUT : Verdict.NOT_OUT);
+      return { result, verdict };
+    }
+
+    if (type === 'Run-out') {
+      const scenarios = [
+        { inCrease: false, broken: true, direct: true, margin: 22, conf: 88, out: true, reasoning: 'Batsman was well short of the crease when the stumps were broken by a direct hit from cover. Clear run-out.' },
+        { inCrease: true, broken: true, direct: false, margin: 15, conf: 79, out: false, reasoning: 'Batsman\'s bat was grounded behind the crease before the bails were dislodged. Comfortably in.' },
+        { inCrease: false, broken: true, direct: true, margin: 3, conf: 52, out: true, reasoning: 'Extremely tight call. The batsman appears marginally short but the margin is within the Umpire\'s Call zone (< 5cm).' },
+        { inCrease: true, broken: true, direct: true, margin: 8, conf: 85, out: false, reasoning: 'Direct hit but the batsman had grounded the bat behind the line. Replay confirms NOT OUT.' },
+      ];
+      const s = scenarios[Math.floor(r * scenarios.length)];
+      const result: AnalysisResult = {
+        decision_type: 'Run-out', is_out: s.out, confidence: s.conf, reasoning: s.reasoning,
+        lbw_details: null,
+        runout_details: { batsman_in_crease: s.inCrease, stumps_broken: s.broken, direct_hit: s.direct, margin_cm: s.margin },
+        edge_details: null
+      };
+      const verdict = s.margin < 5 ? Verdict.UMPIRES_CALL : (s.out ? Verdict.OUT : Verdict.NOT_OUT);
+      return { result, verdict };
+    }
+
+    // Edge Detection
+    const scenarios = [
+      { bat: true, pad: false, spike: true, hotspot: true, sound: true, conf: 92, out: true, reasoning: 'Clear edge detected. UltraEdge shows a significant spike as ball passes the bat. Hotspot confirms friction mark on the bat edge. Ball carried cleanly to the wicket-keeper.' },
+      { bat: false, pad: true, spike: false, hotspot: false, sound: false, conf: 85, out: false, reasoning: 'No edge detected. UltraEdge is flat as ball passes the bat. Ball struck the pad only. No Hotspot mark on bat.' },
+      { bat: true, pad: true, spike: true, hotspot: false, sound: true, conf: 55, out: false, reasoning: 'Inconclusive. UltraEdge shows a small spike but Hotspot does not confirm contact. Could be bat-pad or pad-bat. Within Umpire\'s Call threshold.' },
+      { bat: false, pad: false, spike: false, hotspot: false, sound: false, conf: 90, out: false, reasoning: 'Ball passed bat and pad cleanly. No spike on UltraEdge, no Hotspot mark. The appeal was for a phantom edge.' },
+    ];
+    const s = scenarios[Math.floor(r * scenarios.length)];
+    const result: AnalysisResult = {
+      decision_type: 'Edge Detection', is_out: s.out, confidence: s.conf, reasoning: s.reasoning,
+      lbw_details: null, runout_details: null,
+      edge_details: { bat_involved: s.bat, pad_involved: s.pad, spike_detected: s.spike, hotspot_detected: s.hotspot, sound_anomaly: s.sound }
+    };
+    const verdict = (s.spike && !s.hotspot && s.conf < 65) ? Verdict.UMPIRES_CALL : (s.out ? Verdict.OUT : Verdict.NOT_OUT);
+    return { result, verdict };
+  }
+
   const handleReset = () => {
     setStatus(DecisionStatus.IDLE);
     setVerdict(null);
     setProgress(0);
     setSelectedFile(null);
     setConfidence(null);
+    setAnalysisResult(null);
+    setReasoning('');
   };
 
   const exportDecisionCard = () => {
@@ -292,25 +382,38 @@ export default function App() {
     ctx.fillText(`VENUE: ${matchInfo.location}`, 40, 195);
 
     // Result Box
-    ctx.fillStyle = verdict === Verdict.OUT ? '#ef4444' : '#22c55e';
+    ctx.fillStyle = verdict === Verdict.OUT ? '#ef4444' : verdict === Verdict.UMPIRES_CALL ? '#d97706' : '#22c55e';
     ctx.roundRect(40, 240, 300, 120, 15);
     ctx.fill();
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 64px sans-serif';
+    ctx.font = verdict === Verdict.UMPIRES_CALL ? 'bold 40px sans-serif' : 'bold 64px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(verdict.toUpperCase(), 190, 325);
+    ctx.fillText(verdict.toUpperCase(), 190, verdict === Verdict.UMPIRES_CALL ? 310 : 325);
 
     // Stats
     ctx.textAlign = 'left';
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 20px sans-serif';
-    ctx.fillText(`AI CONFIDENCE: ${confidence}%`, 400, 275);
+    ctx.fillText(`AI CONFIDENCE: ${confidence ?? 0}%`, 400, 275);
 
     ctx.fillStyle = '#94a3b8';
     ctx.font = '16px sans-serif';
-    ctx.fillText('• TRACKING: COMPLETE', 400, 310);
-    ctx.fillText('• BALL TRACKING: VERIFIED', 400, 340);
+    ctx.fillText(`• TYPE: ${activeTab.toUpperCase()}`, 400, 310);
+    
+    // Show type-specific tracking data
+    if (analysisResult?.lbw_details) {
+      ctx.fillText(`• PITCHING: ${analysisResult.lbw_details.pitching.toUpperCase()}`, 400, 340);
+      ctx.fillText(`• WICKETS: ${analysisResult.lbw_details.wickets.toUpperCase()}`, 400, 365);
+    } else if (analysisResult?.runout_details) {
+      ctx.fillText(`• CREASE: ${analysisResult.runout_details.batsman_in_crease ? 'SAFE' : 'SHORT'}`, 400, 340);
+      ctx.fillText(`• MARGIN: ${analysisResult.runout_details.margin_cm}CM`, 400, 365);
+    } else if (analysisResult?.edge_details) {
+      ctx.fillText(`• ULTRA EDGE: ${analysisResult.edge_details.spike_detected ? 'SPIKE' : 'FLAT'}`, 400, 340);
+      ctx.fillText(`• HOTSPOT: ${analysisResult.edge_details.hotspot_detected ? 'CONFIRMED' : 'NONE'}`, 400, 365);
+    } else {
+      ctx.fillText('• TRACKING: COMPLETE', 400, 340);
+    }
 
     // Footer
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
@@ -556,21 +659,27 @@ export default function App() {
                   <motion.div
                     initial={{ scale: 0.5, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    className={`z-30 text-center absolute inset-0 m-auto flex flex-col items-center justify-center p-6 sm:p-12 bg-black/40 backdrop-blur-md rounded-3xl ${verdict === Verdict.OUT ? 'verdict-out' : 'verdict-not-out'}`}
+                    className={`z-30 text-center absolute inset-0 m-auto flex flex-col items-center justify-center p-6 sm:p-12 bg-black/40 backdrop-blur-md rounded-3xl ${
+                      verdict === Verdict.OUT ? 'verdict-out' : verdict === Verdict.UMPIRES_CALL ? '' : 'verdict-not-out'
+                    }`}
                   >
                     <div className={`
                       inline-block px-8 py-4 sm:px-12 sm:py-6 rounded-lg border-4 shadow-2xl transition-all duration-500
                       ${verdict === Verdict.OUT
                         ? 'bg-drs-red border-red-500 shadow-red-900/40'
-                        : 'bg-drs-green border-green-500 shadow-green-900/40'}
+                        : verdict === Verdict.UMPIRES_CALL
+                          ? 'bg-amber-600 border-amber-400 shadow-amber-900/40'
+                          : 'bg-drs-green border-green-500 shadow-green-900/40'}
                     `}>
-                      <h3 className="text-5xl sm:text-8xl font-black italic tracking-tighter text-white drop-shadow-lg">
+                      <h3 className={`font-black italic tracking-tighter text-white drop-shadow-lg ${
+                        verdict === Verdict.UMPIRES_CALL ? 'text-3xl sm:text-5xl' : 'text-5xl sm:text-8xl'
+                      }`}>
                         {verdict}
                       </h3>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-6 sm:mt-8 items-center">
                       <p className="text-slate-400 font-medium bg-black/40 backdrop-blur-sm py-2 px-4 rounded-full inline-block text-xs sm:text-base">
-                        AI Confidence: <span className="text-white">{confidence || 98.2}%</span>
+                        AI Confidence: <span className="text-white">{confidence ?? 0}%</span>
                       </p>
                       <button
                         onClick={exportDecisionCard}
@@ -620,26 +729,93 @@ export default function App() {
             </div>
 
             <div className="space-y-4">
-              {/* LBW Details */}
+              {/* Decision-Type-Specific Tracking Panel */}
               <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 lg:p-5">
                 <div className="flex justify-between items-center mb-4">
                   <p className="text-[9px] lg:text-[10px] text-brand font-bold uppercase tracking-wider">{activeTab} Tracking</p>
                   <Radio className="w-3 h-3 text-red-500 animate-pulse" />
                 </div>
 
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { label: 'PITCHING', value: verdict ? 'In Line' : '—', color: 'text-drs-green' },
-                    { label: 'IMPACT', value: verdict ? 'In Line' : '—', color: 'text-drs-green' },
-                    { label: 'WICKETS', value: verdict === Verdict.OUT ? 'Hitting' : verdict ? 'Missing' : '—', color: verdict === Verdict.OUT ? 'text-drs-green' : 'text-drs-red' }
-                  ].map((stat, i) => (
-                    <div key={i} className="bg-black/40 border border-slate-800 p-2 rounded text-center">
-                      <p className="text-[8px] text-slate-500 mb-1 font-bold">{stat.label}</p>
-                      <p className={`text-[10px] lg:text-xs font-black uppercase ${stat.color}`}>{stat.value}</p>
-                    </div>
-                  ))}
-                </div>
+                {/* LBW Tracking */}
+                {activeTab === 'LBW' && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {(() => {
+                      const lbw = analysisResult?.lbw_details;
+                      const pitching = lbw?.pitching || (verdict ? 'In Line' : '—');
+                      const impact = lbw?.impact || (verdict ? 'In Line' : '—');
+                      const wickets = lbw?.wickets || (verdict ? (verdict === Verdict.OUT ? 'Hitting' : 'Missing') : '—');
+                      const pitchColor = pitching === 'Outside Leg' ? 'text-drs-red' : pitching === 'In Line' ? 'text-drs-green' : 'text-amber-400';
+                      const impactColor = impact === 'Outside Off' || impact === 'Outside Leg' ? 'text-drs-red' : 'text-drs-green';
+                      const wicketsColor = wickets === 'Hitting' ? 'text-drs-green' : wickets === 'Clipping' ? 'text-amber-400' : wickets === 'Missing' ? 'text-drs-red' : 'text-slate-500';
+                      return [
+                        { label: 'PITCHING', value: pitching, color: pitchColor },
+                        { label: 'IMPACT', value: impact, color: impactColor },
+                        { label: 'WICKETS', value: wickets, color: wicketsColor }
+                      ].map((stat, i) => (
+                        <div key={i} className="bg-black/40 border border-slate-800 p-2 rounded text-center">
+                          <p className="text-[8px] text-slate-500 mb-1 font-bold">{stat.label}</p>
+                          <p className={`text-[10px] lg:text-xs font-black uppercase ${stat.color}`}>{stat.value}</p>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                )}
+
+                {/* Run-out Tracking */}
+                {activeTab === 'Run-out' && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {(() => {
+                      const ro = analysisResult?.runout_details;
+                      const crease = ro ? (ro.batsman_in_crease ? 'SAFE' : 'SHORT') : '—';
+                      const stumps = ro ? (ro.stumps_broken ? 'BROKEN' : 'INTACT') : '—';
+                      const margin = ro ? `${ro.margin_cm}cm` : '—';
+                      return [
+                        { label: 'CREASE', value: crease, color: crease === 'SAFE' ? 'text-drs-green' : crease === 'SHORT' ? 'text-drs-red' : 'text-slate-500' },
+                        { label: 'STUMPS', value: stumps, color: stumps === 'BROKEN' ? 'text-drs-red' : stumps === 'INTACT' ? 'text-drs-green' : 'text-slate-500' },
+                        { label: 'MARGIN', value: margin, color: ro && ro.margin_cm < 5 ? 'text-amber-400' : 'text-slate-300' }
+                      ].map((stat, i) => (
+                        <div key={i} className="bg-black/40 border border-slate-800 p-2 rounded text-center">
+                          <p className="text-[8px] text-slate-500 mb-1 font-bold">{stat.label}</p>
+                          <p className={`text-[10px] lg:text-xs font-black uppercase ${stat.color}`}>{stat.value}</p>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                )}
+
+                {/* Edge Detection Tracking */}
+                {activeTab === 'Edge Detection' && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {(() => {
+                      const edge = analysisResult?.edge_details;
+                      const spike = edge ? (edge.spike_detected ? 'DETECTED' : 'FLAT') : '—';
+                      const hotspot = edge ? (edge.hotspot_detected ? 'CONFIRMED' : 'NONE') : '—';
+                      const bat = edge ? (edge.bat_involved ? 'CONTACT' : 'NO CONTACT') : '—';
+                      return [
+                        { label: 'ULTRA EDGE', value: spike, color: spike === 'DETECTED' ? 'text-drs-green' : spike === 'FLAT' ? 'text-drs-red' : 'text-slate-500' },
+                        { label: 'HOTSPOT', value: hotspot, color: hotspot === 'CONFIRMED' ? 'text-drs-green' : hotspot === 'NONE' ? 'text-drs-red' : 'text-slate-500' },
+                        { label: 'BAT', value: bat, color: bat === 'CONTACT' ? 'text-drs-green' : bat === 'NO CONTACT' ? 'text-drs-red' : 'text-slate-500' }
+                      ].map((stat, i) => (
+                        <div key={i} className="bg-black/40 border border-slate-800 p-2 rounded text-center">
+                          <p className="text-[8px] text-slate-500 mb-1 font-bold">{stat.label}</p>
+                          <p className={`text-[10px] lg:text-xs font-black uppercase ${stat.color}`}>{stat.value}</p>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                )}
               </div>
+
+              {/* AI Reasoning */}
+              {reasoning && (
+                <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 lg:p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Activity className="w-3 h-3 text-brand" />
+                    <p className="text-[9px] lg:text-[10px] text-brand font-bold uppercase tracking-wider">AI Reasoning</p>
+                  </div>
+                  <p className="text-[10px] lg:text-xs text-slate-300 leading-relaxed">{reasoning}</p>
+                </div>
+              )}
 
               {/* Advanced Metadata */}
               <div className="grid grid-cols-2 gap-3 lg:gap-4">
@@ -653,9 +829,11 @@ export default function App() {
                 <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3 lg:p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Layers className="w-3 h-3 text-slate-500" />
-                    <span className="text-[8px] lg:text-[9px] text-slate-500 font-bold uppercase">Ref. Frames</span>
+                    <span className="text-[8px] lg:text-[9px] text-slate-500 font-bold uppercase">Confidence</span>
                   </div>
-                  <p className="text-[10px] lg:text-xs font-mono">#42,910</p>
+                  <p className={`text-[10px] lg:text-xs font-mono font-bold ${
+                    confidence === null ? 'text-slate-500' : confidence >= 70 ? 'text-drs-green' : confidence >= 40 ? 'text-amber-400' : 'text-drs-red'
+                  }`}>{confidence !== null ? `${confidence}%` : '—'}</p>
                 </div>
               </div>
             </div>

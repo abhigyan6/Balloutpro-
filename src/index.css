@@ -75,3 +75,12 @@ body {
 .verdict-not-out {
   animation: glow-pulse 2s infinite;
 }
+
+@keyframes umpire-pulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.2); }
+  50% { box-shadow: 0 0 40px rgba(245, 158, 11, 0.6); }
+}
+
+.verdict-umpires-call {
+  animation: umpire-pulse 2s infinite;
+}
