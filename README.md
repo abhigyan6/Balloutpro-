@@ -250,15 +250,6 @@ Built with ❤️ for **GDG Bhopal**
 
 ---
 
-## 🙏 Acknowledgments
-
-- [Google Gemini AI](https://ai.google.dev) — for the multimodal AI analysis capabilities
-- [Firebase](https://firebase.google.com) — for real-time database and hosting
-- [Vite](https://vite.dev) — for the blazing-fast build tooling
-- [Tailwind CSS](https://tailwindcss.com) — for the utility-first styling
-- [Lucide Icons](https://lucide.dev) — for the beautiful icon set
-- [Framer Motion](https://motion.dev) — for the smooth animations
-- The cricket community 🏏 — for inspiring us to build better tools for the game
 
 ---
 
