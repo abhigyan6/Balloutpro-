@@ -1045,7 +1045,7 @@ export default function App() {
             </div>
 
             <p style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'var(--muted)', textAlign: 'center', letterSpacing: '0.10em', textTransform: 'uppercase' }}>
-              Made with ♥ by Veerendra, Aman & Avhigyan · GDG Bhopal
+              Made with ♥ by Veerendra, Aman & Abhigyan · GDG Bhopal
             </p>
           </div>
         </div>
