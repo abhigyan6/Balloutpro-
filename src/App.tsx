@@ -36,6 +36,7 @@ export default function App() {
   const [confidence, setConfidence] = useState<number | null>(null);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [reasoning, setReasoning] = useState<string>('');
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const [isLive, setIsLive] = useState(false);
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState(0);
@@ -202,6 +203,7 @@ export default function App() {
       }
 
       if (frames.length > 0) {
+        setIsDemoMode(false);
         // Pass the active decision type so the AI uses the right prompt
         result = await analyzeVideoWithGemini(frames, activeTab);
         finalVerdict = getVerdictFromResult(result, activeTab);
@@ -209,6 +211,7 @@ export default function App() {
         aiReasoning = result.reasoning;
       } else if (!isLive && !selectedFile) {
         // DEMO MODE — generate realistic mock data based on decision type
+        setIsDemoMode(true);
         const mockResult = generateMockAnalysis(activeTab);
         result = mockResult.result;
         finalVerdict = mockResult.verdict;
@@ -280,34 +283,60 @@ export default function App() {
     }
   };
 
-  /** Generates realistic mock analysis data for demo mode */
+  /** Generates realistic ICC-accurate mock analysis data for demo mode.
+   * Distribution: ~45% OUT, ~40% NOT OUT, ~15% UMPIRE'S CALL
+   * Verdict is derived by the same ICC rules used in determineVerdict().
+   */
   function generateMockAnalysis(type: 'LBW' | 'Run-out' | 'Edge Detection'): { result: AnalysisResult; verdict: Verdict } {
     const r = Math.random();
-    
+
     if (type === 'LBW') {
+      // 5 scenarios: 2 OUT, 2 NOT OUT, 1 UMPIRE'S CALL
       const scenarios = [
-        { pitching: 'In Line' as const, impact: 'In Line' as const, wickets: 'Hitting' as const, conf: 82, out: true, reasoning: 'Ball pitched in line, struck pad in line with the stumps. Ball tracking shows the delivery going on to hit middle and leg stump. Decision: OUT.' },
-        { pitching: 'In Line' as const, impact: 'In Line' as const, wickets: 'Clipping' as const, conf: 48, out: false, reasoning: 'Ball pitched in line and impact was in line, but ball tracking shows only marginal contact with leg stump bail. Within the Umpire\'s Call zone.' },
-        { pitching: 'Outside Off' as const, impact: 'In Line' as const, wickets: 'Missing' as const, conf: 76, out: false, reasoning: 'Ball pitched outside off stump, straightened after pitching. Impact in line but ball tracking shows the delivery going over the stumps. Decision: NOT OUT.' },
-        { pitching: 'Outside Leg' as const, impact: 'In Line' as const, wickets: 'Hitting' as const, conf: 91, out: false, reasoning: 'Ball pitched outside leg stump. Under ICC rules, cannot be given out LBW regardless of other factors. Decision: NOT OUT.' },
-        { pitching: 'In Line' as const, impact: 'Outside Off' as const, wickets: 'Hitting' as const, conf: 70, out: false, reasoning: 'Ball pitched in line but impact was outside the line of off stump. Batsman was playing a shot. Decision: NOT OUT.' },
+        // OUT
+        { pitching: 'In Line' as const, impact: 'In Line' as const, wickets: 'Hitting' as const, conf: 84, out: true,
+          reasoning: 'Ball pitched in line with the stumps, struck the pad in line. Ball-tracking projects the delivery hitting middle and off stump. Decision: OUT LBW.' },
+        { pitching: 'Outside Off' as const, impact: 'In Line' as const, wickets: 'Hitting' as const, conf: 78, out: true,
+          reasoning: 'Ball pitched outside off, shaped back in sharply. Impact was in line with off stump. Ball tracking shows the delivery hitting off and middle stump. Batsman played no shot. Decision: OUT LBW.' },
+        // NOT OUT
+        { pitching: 'Outside Leg' as const, impact: 'In Line' as const, wickets: 'Hitting' as const, conf: 91, out: false,
+          reasoning: 'Ball pitched outside leg stump. Under ICC DRS rules, a batsman cannot be given out LBW if the ball pitches outside leg stump, regardless of impact or trajectory. Decision: NOT OUT.' },
+        { pitching: 'In Line' as const, impact: 'In Line' as const, wickets: 'Missing' as const, conf: 73, out: false,
+          reasoning: 'Ball pitched in line and struck the pad in line, but ball-tracking shows the delivery going over the top of the stumps. Decision: NOT OUT — missing over the stumps.' },
+        // UMPIRE'S CALL (genuine clipping scenario)
+        { pitching: 'In Line' as const, impact: 'In Line' as const, wickets: 'Clipping' as const, conf: 67, out: false,
+          reasoning: 'Ball pitched in line, struck the pad in line. Ball tracking shows the delivery clipping the top of leg stump bail — a marginal hit. This is Umpire\'s Call; the original decision stands.' },
       ];
       const s = scenarios[Math.floor(r * scenarios.length)];
       const result: AnalysisResult = {
         decision_type: 'LBW', is_out: s.out, confidence: s.conf, reasoning: s.reasoning,
-        lbw_details: { pitching: s.pitching, impact: s.impact, wickets: s.wickets, ball_tracking_confidence: s.conf + Math.floor(Math.random() * 10) - 5 },
+        lbw_details: { pitching: s.pitching, impact: s.impact, wickets: s.wickets, ball_tracking_confidence: s.conf + Math.floor(Math.random() * 8) - 4 },
         runout_details: null, edge_details: null
       };
-      const verdict = s.wickets === 'Clipping' ? Verdict.UMPIRES_CALL : (s.out ? Verdict.OUT : Verdict.NOT_OUT);
+      // Apply same ICC verdict logic as determineVerdict()
+      let verdict: Verdict;
+      if (s.pitching === 'Outside Leg') verdict = Verdict.NOT_OUT;
+      else if (s.wickets === 'Missing') verdict = Verdict.NOT_OUT;
+      else if (s.wickets === 'Clipping') verdict = Verdict.UMPIRES_CALL;
+      else verdict = s.out ? Verdict.OUT : Verdict.NOT_OUT;
       return { result, verdict };
     }
 
     if (type === 'Run-out') {
+      // 5 scenarios: 3 OUT, 2 NOT OUT (margin < 2cm = UMPIRE'S CALL per new logic)
       const scenarios = [
-        { inCrease: false, broken: true, direct: true, margin: 22, conf: 88, out: true, reasoning: 'Batsman was well short of the crease when the stumps were broken by a direct hit from cover. Clear run-out.' },
-        { inCrease: true, broken: true, direct: false, margin: 15, conf: 79, out: false, reasoning: 'Batsman\'s bat was grounded behind the crease before the bails were dislodged. Comfortably in.' },
-        { inCrease: false, broken: true, direct: true, margin: 3, conf: 52, out: true, reasoning: 'Extremely tight call. The batsman appears marginally short but the margin is within the Umpire\'s Call zone (< 5cm).' },
-        { inCrease: true, broken: true, direct: true, margin: 8, conf: 85, out: false, reasoning: 'Direct hit but the batsman had grounded the bat behind the line. Replay confirms NOT OUT.' },
+        // OUT
+        { inCrease: false, broken: true, direct: true, margin: 28, conf: 91, out: true,
+          reasoning: 'Batsman was clearly short of the crease. The direct hit from mid-off broke the stumps with the batsman still running. Margin of 28cm. Decision: OUT — Run Out.' },
+        { inCrease: false, broken: true, direct: false, margin: 14, conf: 83, out: true,
+          reasoning: 'Quick throw from deep fine-leg. The wicket-keeper collected and broke the stumps while the batsman was 14cm short of the crease line. Decision: OUT — Run Out.' },
+        { inCrease: false, broken: true, direct: true, margin: 7, conf: 77, out: true,
+          reasoning: 'Direct hit from cover. The batsman\'s bat was 7cm short of the crease when the bails were dislodged. Clear run-out. Decision: OUT.' },
+        // NOT OUT
+        { inCrease: true, broken: true, direct: false, margin: 0, conf: 88, out: false,
+          reasoning: 'Batsman\'s bat was grounded behind the crease before the bails were dislodged. The third umpire confirms the bat was in. Decision: NOT OUT.' },
+        { inCrease: true, broken: true, direct: true, margin: 0, conf: 85, out: false,
+          reasoning: 'Close call — direct hit from point. However, the batsman had just grounded the bat behind the crease line when the stumps were disturbed. Decision: NOT OUT.' },
       ];
       const s = scenarios[Math.floor(r * scenarios.length)];
       const result: AnalysisResult = {
@@ -316,16 +345,30 @@ export default function App() {
         runout_details: { batsman_in_crease: s.inCrease, stumps_broken: s.broken, direct_hit: s.direct, margin_cm: s.margin },
         edge_details: null
       };
-      const verdict = s.margin < 5 ? Verdict.UMPIRES_CALL : (s.out ? Verdict.OUT : Verdict.NOT_OUT);
+      // Apply same ICC verdict logic as determineVerdict()
+      let verdict: Verdict;
+      if (!s.broken) verdict = Verdict.NOT_OUT;
+      else if (s.inCrease) verdict = Verdict.NOT_OUT;
+      else if (s.margin > 0 && s.margin < 3) verdict = Verdict.UMPIRES_CALL;
+      else verdict = s.out ? Verdict.OUT : Verdict.NOT_OUT;
       return { result, verdict };
     }
 
-    // Edge Detection
+    // Edge Detection: 5 scenarios: 2 OUT, 2 NOT OUT, 1 UMPIRE'S CALL
     const scenarios = [
-      { bat: true, pad: false, spike: true, hotspot: true, sound: true, conf: 92, out: true, reasoning: 'Clear edge detected. UltraEdge shows a significant spike as ball passes the bat. Hotspot confirms friction mark on the bat edge. Ball carried cleanly to the wicket-keeper.' },
-      { bat: false, pad: true, spike: false, hotspot: false, sound: false, conf: 85, out: false, reasoning: 'No edge detected. UltraEdge is flat as ball passes the bat. Ball struck the pad only. No Hotspot mark on bat.' },
-      { bat: true, pad: true, spike: true, hotspot: false, sound: true, conf: 55, out: false, reasoning: 'Inconclusive. UltraEdge shows a small spike but Hotspot does not confirm contact. Could be bat-pad or pad-bat. Within Umpire\'s Call threshold.' },
-      { bat: false, pad: false, spike: false, hotspot: false, sound: false, conf: 90, out: false, reasoning: 'Ball passed bat and pad cleanly. No spike on UltraEdge, no Hotspot mark. The appeal was for a phantom edge.' },
+      // OUT
+      { bat: true, pad: false, spike: true, hotspot: true, sound: true, conf: 93, out: true,
+        reasoning: 'Clear edge detected. UltraEdge shows a pronounced spike as the ball passes the bat. Hotspot confirms a heat mark on the outside edge of the bat. Ball carried cleanly to the wicket-keeper. Decision: OUT — caught behind.' },
+      { bat: true, pad: false, spike: true, hotspot: true, sound: false, conf: 87, out: true,
+        reasoning: 'UltraEdge registers a clear spike and Hotspot confirms bat contact. The ball deflected to first slip where it was caught cleanly. Decision: OUT — caught in the slip cordon.' },
+      // NOT OUT
+      { bat: false, pad: true, spike: false, hotspot: false, sound: false, conf: 88, out: false,
+        reasoning: 'No edge detected. UltraEdge remains flat as the ball passes the bat. Hotspot shows no friction mark on the bat. The ball struck the front pad only. Decision: NOT OUT.' },
+      { bat: false, pad: false, spike: false, hotspot: false, sound: false, conf: 91, out: false,
+        reasoning: 'The ball passed the outside edge cleanly with no contact. UltraEdge is completely flat. No Hotspot mark. The appeal was for a phantom edge. Decision: NOT OUT.' },
+      // UMPIRE'S CALL (spike without hotspot)
+      { bat: true, pad: true, spike: true, hotspot: false, sound: true, conf: 58, out: false,
+        reasoning: 'UltraEdge shows a small spike but Hotspot does not confirm bat contact. The spike may be from the bat passing close to the pad or a sound anomaly. Technology is inconclusive. Decision: UMPIRE\'S CALL — original decision stands.' },
     ];
     const s = scenarios[Math.floor(r * scenarios.length)];
     const result: AnalysisResult = {
@@ -333,7 +376,12 @@ export default function App() {
       lbw_details: null, runout_details: null,
       edge_details: { bat_involved: s.bat, pad_involved: s.pad, spike_detected: s.spike, hotspot_detected: s.hotspot, sound_anomaly: s.sound }
     };
-    const verdict = (s.spike && !s.hotspot && s.conf < 65) ? Verdict.UMPIRES_CALL : (s.out ? Verdict.OUT : Verdict.NOT_OUT);
+    // Apply same ICC verdict logic as determineVerdict()
+    let verdict: Verdict;
+    if (!s.bat && !s.spike) verdict = Verdict.NOT_OUT;
+    else if (s.pad && !s.bat) verdict = Verdict.NOT_OUT;
+    else if (s.spike && !s.hotspot) verdict = Verdict.UMPIRES_CALL;
+    else verdict = s.out ? Verdict.OUT : Verdict.NOT_OUT;
     return { result, verdict };
   }
 
@@ -345,6 +393,7 @@ export default function App() {
     setConfidence(null);
     setAnalysisResult(null);
     setReasoning('');
+    setIsDemoMode(false);
   };
 
   const exportDecisionCard = () => {
@@ -809,13 +858,24 @@ export default function App() {
               {/* AI Reasoning */}
               {reasoning && (
                 <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 lg:p-5">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Activity className="w-3 h-3 text-brand" />
-                    <p className="text-[9px] lg:text-[10px] text-brand font-bold uppercase tracking-wider">AI Reasoning</p>
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2">
+                      <Activity className="w-3 h-3 text-brand" />
+                      <p className="text-[9px] lg:text-[10px] text-brand font-bold uppercase tracking-wider">AI Reasoning</p>
+                    </div>
+                    {isDemoMode && (
+                      <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full">
+                        Demo Mode
+                      </span>
+                    )}
                   </div>
                   <p className="text-[10px] lg:text-xs text-slate-300 leading-relaxed">{reasoning}</p>
+                  {isDemoMode && (
+                    <p className="text-[9px] text-slate-500 mt-2 italic">Upload a video or use live camera to run real AI analysis.</p>
+                  )}
                 </div>
               )}
+
 
               {/* Advanced Metadata */}
               <div className="grid grid-cols-2 gap-3 lg:gap-4">

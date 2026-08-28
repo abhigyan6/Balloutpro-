@@ -4,12 +4,10 @@ import { Verdict } from "../types";
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
 
 if (!API_KEY || API_KEY.startsWith('your_')) {
-  console.warn('Gemini API key not configured. AI analysis will use fallback mode. Update VITE_GEMINI_API_KEY in your .env file.');
+  console.warn('Gemini API key not configured. AI analysis will use demo mode. Set VITE_GEMINI_API_KEY in your .env file.');
 }
 
-const ai = new GoogleGenAI({ 
-  apiKey: API_KEY 
-});
+const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 // ─── Analysis Result Types ─────────────────────────────────────────────────
 
@@ -50,59 +48,70 @@ export interface AnalysisResult {
 // ─── Decision-Type-Specific Prompts ─────────────────────────────────────────
 
 function getLBWPrompt(): string {
-  return `You are an expert cricket DRS (Decision Review System) umpire AI. Analyze these video frames of a cricket delivery for an LBW (Leg Before Wicket) appeal.
+  return `You are an ICC-certified DRS umpire AI. Analyze these cricket video frames for an LBW (Leg Before Wicket) appeal and return a DECISIVE verdict.
 
-CRITICAL ANALYSIS STEPS:
-1. **PITCHING**: Where did the ball pitch? Was it "In Line" with the stumps, "Outside Off", or "Outside Leg"?  
-   - If pitching is "Outside Leg", the batsman is NOT OUT regardless of other factors.
-2. **IMPACT**: Where did the ball hit the pad? Was the impact "In Line" with the stumps, "Outside Off", or "Outside Leg"?  
-   - If impact is "Outside Off" AND the batsman was playing a shot, the batsman is NOT OUT.
-3. **WICKETS**: Track the ball's projected path after impact. Would it have gone on to hit the stumps ("Hitting"), miss them ("Missing"), or just clip the bails ("Clipping")?  
-   - "Clipping" means the ball is only marginally hitting — this should be UMPIRE'S CALL.
-4. **BALL TRACKING CONFIDENCE**: How confident are you in your ball tracking projection (0-100)?
+ANALYSIS STEPS:
+1. PITCHING: Where did the ball pitch? Pick one: "In Line" (between off and leg stump), "Outside Off" (outside off stump), or "Outside Leg" (outside leg stump).
+2. IMPACT: Where did the ball strike the pad? Pick one: "In Line", "Outside Off", or "Outside Leg".
+3. WICKETS: Project the ball's path — would it hit the stumps? Pick one: "Hitting" (clear impact on stumps), "Clipping" (just clipping the bails, very marginal), or "Missing" (going over, outside, or below stumps).
+4. BALL TRACKING CONFIDENCE: Your confidence in the ball trajectory projection (0-100).
 
-DECISION RULES (follow ICC DRS rules strictly):
-- OUT: Pitching "In Line" or "Outside Off", Impact "In Line", Wickets "Hitting", confidence > 50
-- UMPIRE'S CALL: Wickets is "Clipping" OR Impact is borderline OR confidence is between 40-60
-- NOT OUT: Pitching "Outside Leg" OR Impact "Outside Off" (if shot played) OR Wickets "Missing"
+ICC RULES — apply strictly:
+- If pitching = "Outside Leg" → is_out = false, reasoning must state "Pitched outside leg stump — NOT OUT under ICC DRS rule."
+- If wickets = "Missing" → is_out = false, reasoning must state "Ball tracking shows the delivery missing the stumps — NOT OUT."
+- If wickets = "Hitting" AND pitching = "In Line" or "Outside Off" AND impact = "In Line" → is_out = true.
+- If wickets = "Clipping" → this is a borderline call, is_out = false (umpire's call scenario, original decision stands).
+- If impact = "Outside Off" and batsman was playing a shot → is_out = false.
 
-Be precise and realistic. If the frames are unclear or don't show a cricket delivery, set confidence very low.`;
+IMPORTANT: Be decisive. Set confidence based on clarity of evidence:
+- 80-95: Very clear delivery, high confidence in tracking
+- 60-79: Reasonably clear frames, moderate tracking confidence  
+- 40-59: Partial evidence, lower tracking confidence but still make a call
+- Do NOT set confidence < 30 unless the footage shows zero cricket content whatsoever.
+
+Always return all required JSON fields. Make a firm decision.`;
 }
 
 function getRunOutPrompt(): string {
-  return `You are an expert cricket DRS (Decision Review System) umpire AI. Analyze these video frames for a Run-out appeal.
+  return `You are an ICC-certified DRS umpire AI. Analyze these cricket video frames for a Run-out appeal and return a DECISIVE verdict.
 
-CRITICAL ANALYSIS STEPS:
-1. **BATSMAN POSITION**: Is the batsman's bat or any part of the body grounded behind the crease line when the stumps are broken?
-2. **STUMPS BROKEN**: Are the stumps clearly disturbed/bails dislodged at the moment of assessment?
-3. **DIRECT HIT**: Was this a direct hit from a fielder, or was the wicket-keeper/fielder collecting and then breaking the stumps?
-4. **MARGIN**: Estimate the margin in centimeters — how close was the decision? 
-   - If margin is < 5cm, this should be UMPIRE'S CALL (too close to call definitively).
+ANALYSIS STEPS:
+1. BATSMAN POSITION: Is any part of the batsman (bat, body) grounded behind the crease when stumps are broken? (batsman_in_crease = true means SAFE)
+2. STUMPS BROKEN: Are the bails clearly dislodged? (stumps_broken = true is required for a run-out)
+3. DIRECT HIT: Was this a direct throw, or did the keeper collect then break the stumps?
+4. MARGIN: Estimate the gap in centimeters between the batsman's bat/body and the crease line at the moment of dismissal. Use 0 if batsman was clearly safe (in crease). Use 50+ if obviously short.
 
-DECISION RULES:
-- OUT: Batsman is NOT grounded behind the crease when stumps are broken, confidence > 50
-- UMPIRE'S CALL: Margin is < 5cm (too close to call) OR confidence is between 40-60  
-- NOT OUT: Batsman is safely grounded behind the crease, or stumps are not broken
+ICC RULES:
+- If batsman_in_crease = true → is_out = false. Reasoning: "Bat/body was grounded behind the crease — NOT OUT."
+- If stumps_broken = false → is_out = false. Reasoning: "Bails were not clearly dislodged — NOT OUT."
+- If batsman_in_crease = false AND stumps_broken = true AND margin_cm >= 3 → is_out = true.
+- If margin_cm < 3 AND margin_cm > 0 → extremely tight call, is_out based on your best visual assessment.
 
-Be precise and realistic. If the frames are unclear, set confidence very low.`;
+IMPORTANT: Be decisive. Set confidence 60-90 for clear footage, 40-60 for partial evidence. Do NOT refuse to make a call.
+
+Always return all required JSON fields.`;
 }
 
 function getEdgeDetectionPrompt(): string {
-  return `You are an expert cricket DRS (Decision Review System) umpire AI. Analyze these video frames for a caught-behind / edge detection appeal.
+  return `You are an ICC-certified DRS umpire AI analyzing frames for a caught-behind / edge detection appeal. Return a DECISIVE verdict.
 
-CRITICAL ANALYSIS STEPS:
-1. **BAT INVOLVED**: Does the ball make contact with the bat? Look for deflection, deviation in ball path, or visible contact.
-2. **PAD INVOLVED**: Does the ball hit the pad? Could this be bat-pad or pad-bat?
-3. **SPIKE DETECTED**: Would UltraEdge/Snickometer show a spike at the moment the ball passes the bat? Look for any visual evidence of contact.
-4. **HOTSPOT DETECTED**: Would Hotspot technology show a heat mark on the bat edge?
-5. **SOUND ANOMALY**: Is there any visual evidence suggesting a noise/click at the critical moment?
+ANALYSIS STEPS:
+1. BAT INVOLVED: Does the ball make contact with the bat? Look for deviation in ball path, deflection, or visible contact near bat edge.
+2. PAD INVOLVED: Does the ball first or only hit the pad?
+3. SPIKE DETECTED: Would UltraEdge show a clear spike as the ball passes the bat? (true = spike visible/likely)
+4. HOTSPOT DETECTED: Would Hotspot show a heat friction mark on the bat edge? (true = confirmed contact)
+5. SOUND ANOMALY: Is there a visible click or sound anomaly in the frames at the moment of passing the bat?
 
-DECISION RULES:
-- OUT: Clear bat contact detected (spike + visual evidence), ball carried to fielder/keeper, confidence > 50
-- UMPIRE'S CALL: Inconclusive spike, bat very close to ball but contact uncertain, confidence 40-60
-- NOT OUT: No bat contact, ball hits pad only, or ball passes bat cleanly
+ICC RULES:
+- If spike_detected = true AND hotspot_detected = true → is_out = true (confirmed edge). "Clear edge confirmed by UltraEdge and Hotspot — OUT."
+- If spike_detected = false AND hotspot_detected = false → is_out = false. "No evidence of bat contact — NOT OUT."
+- If pad_involved = true AND bat_involved = false → is_out = false. "Ball struck pad only — NOT OUT."
+- If spike_detected = true AND hotspot_detected = false → inconclusive, is_out based on visual bat contact evidence.
+- If bat_involved = true AND ball carried to fielder → is_out = true.
 
-Be precise. Look for the finest edges. If frames are unclear, set confidence very low.`;
+IMPORTANT: Be decisive. Set confidence 70-90 for clear footage, 50-70 for partial evidence. Always make a firm call.
+
+Always return all required JSON fields.`;
 }
 
 // ─── Response Schemas ───────────────────────────────────────────────────────
@@ -159,81 +168,75 @@ function getEdgeSchema() {
 // ─── Verdict Determination ──────────────────────────────────────────────────
 
 /**
- * Determines the final DRS verdict using ICC-style confidence thresholds.
- * - Umpire's Call zone: confidence 40-60 OR borderline tracking values
+ * ICC-accurate verdict logic.
+ * UMPIRE'S CALL is reserved ONLY for genuine cricket borderline situations:
+ *   - LBW: ball clipping the bails (marginal hitting)
+ *   - Run-out: margin < 3cm (too close for technology to determine)
+ *   - Edge: spike without hotspot confirmation (inconclusive technology)
+ * 
+ * The old 40-60 confidence dead zone is REMOVED — it caused nearly everything
+ * to become UMPIRE'S CALL regardless of what the AI actually detected.
  */
 function determineVerdict(
   rawResult: any,
   decisionType: DecisionType
 ): { verdict: Verdict; confidence: number } {
   const confidence = Math.max(0, Math.min(100, Math.round(rawResult.confidence)));
-  
-  // If AI confidence is very low, it's unclear footage — defer to umpire
-  if (confidence < 30) {
-    return { verdict: Verdict.UMPIRES_CALL, confidence };
-  }
 
   if (decisionType === 'LBW') {
-    // ICC LBW rules
+    // Hard ICC rules first — these override everything
     if (rawResult.pitching === 'Outside Leg') {
       return { verdict: Verdict.NOT_OUT, confidence };
     }
     if (rawResult.wickets === 'Missing') {
       return { verdict: Verdict.NOT_OUT, confidence };
     }
+    if (rawResult.impact === 'Outside Off') {
+      return { verdict: Verdict.NOT_OUT, confidence };
+    }
+    // Genuine borderline: ball only clipping bails
     if (rawResult.wickets === 'Clipping') {
       return { verdict: Verdict.UMPIRES_CALL, confidence };
     }
-    // Borderline confidence = Umpire's Call
-    if (confidence >= 40 && confidence <= 60) {
-      return { verdict: Verdict.UMPIRES_CALL, confidence };
-    }
-    return {
-      verdict: rawResult.is_out ? Verdict.OUT : Verdict.NOT_OUT,
-      confidence
-    };
+    // Clear verdict from AI
+    return { verdict: rawResult.is_out ? Verdict.OUT : Verdict.NOT_OUT, confidence };
   }
 
   if (decisionType === 'Run-out') {
-    // Very tight margin = Umpire's Call
-    if (rawResult.margin_cm !== undefined && rawResult.margin_cm < 5 && rawResult.margin_cm > 0) {
+    if (!rawResult.stumps_broken) {
+      return { verdict: Verdict.NOT_OUT, confidence };
+    }
+    if (rawResult.batsman_in_crease) {
+      return { verdict: Verdict.NOT_OUT, confidence };
+    }
+    // Margin < 3cm is genuinely too close for technology
+    if (rawResult.margin_cm !== undefined && rawResult.margin_cm > 0 && rawResult.margin_cm < 3) {
       return { verdict: Verdict.UMPIRES_CALL, confidence };
     }
-    if (confidence >= 40 && confidence <= 60) {
-      return { verdict: Verdict.UMPIRES_CALL, confidence };
-    }
-    return {
-      verdict: rawResult.is_out ? Verdict.OUT : Verdict.NOT_OUT,
-      confidence
-    };
+    return { verdict: rawResult.is_out ? Verdict.OUT : Verdict.NOT_OUT, confidence };
   }
 
   if (decisionType === 'Edge Detection') {
-    // Inconclusive spike = Umpire's Call
-    if (rawResult.spike_detected && !rawResult.hotspot_detected && confidence < 65) {
+    if (!rawResult.bat_involved && !rawResult.spike_detected) {
+      return { verdict: Verdict.NOT_OUT, confidence };
+    }
+    if (rawResult.pad_involved && !rawResult.bat_involved) {
+      return { verdict: Verdict.NOT_OUT, confidence };
+    }
+    // Spike without hotspot = genuinely inconclusive technology
+    if (rawResult.spike_detected && !rawResult.hotspot_detected) {
       return { verdict: Verdict.UMPIRES_CALL, confidence };
     }
-    if (confidence >= 40 && confidence <= 60) {
-      return { verdict: Verdict.UMPIRES_CALL, confidence };
-    }
-    return {
-      verdict: rawResult.is_out ? Verdict.OUT : Verdict.NOT_OUT,
-      confidence
-    };
+    return { verdict: rawResult.is_out ? Verdict.OUT : Verdict.NOT_OUT, confidence };
   }
 
-  // Fallback
-  return {
-    verdict: rawResult.is_out ? Verdict.OUT : Verdict.NOT_OUT,
-    confidence
-  };
+  return { verdict: rawResult.is_out ? Verdict.OUT : Verdict.NOT_OUT, confidence };
 }
 
 // ─── Frame Extraction ───────────────────────────────────────────────────────
 
 /**
- * Extracts frames from a video file using a hidden canvas.
- * Uses 8 frames by default for better coverage of the delivery.
+ * Extracts evenly-spaced frames from a video file using a hidden canvas.
  */
 export async function extractFrames(videoFile: File, frameCount: number = 8): Promise<string[]> {
   return new Promise((resolve, reject) => {
@@ -241,18 +244,18 @@ export async function extractFrames(videoFile: File, frameCount: number = 8): Pr
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const frames: string[] = [];
-    
+
     video.src = URL.createObjectURL(videoFile);
     video.crossOrigin = "anonymous";
     video.muted = true;
     video.preload = "auto";
-    
+
     video.onloadedmetadata = async () => {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       const duration = video.duration;
       const interval = duration / (frameCount + 1);
-      
+
       try {
         for (let i = 1; i <= frameCount; i++) {
           video.currentTime = i * interval;
@@ -275,10 +278,9 @@ export async function extractFrames(videoFile: File, frameCount: number = 8): Pr
         reject(err);
       }
     };
-    
-    // Global timeout
+
     setTimeout(() => reject(new Error("Video loading timeout")), 15000);
-    
+
     video.onerror = () => {
       URL.revokeObjectURL(video.src);
       reject(new Error("Video loading error"));
@@ -295,7 +297,6 @@ export async function analyzeVideoWithGemini(
   frames: string[],
   decisionType: DecisionType
 ): Promise<AnalysisResult> {
-  // Select prompt and schema based on decision type
   let prompt: string;
   let responseSchema: any;
 
@@ -323,7 +324,7 @@ export async function analyzeVideoWithGemini(
             ...frames.map(f => ({
               inlineData: {
                 data: f,
-                mimeType: "image/jpeg"
+                mimeType: "image/jpeg" as const
               }
             })),
             { text: prompt }
@@ -333,7 +334,7 @@ export async function analyzeVideoWithGemini(
       config: {
         responseMimeType: "application/json",
         responseSchema,
-        temperature: 0.1, // Low temperature for more deterministic/accurate analysis
+        temperature: 0.15,
       }
     });
 
@@ -344,7 +345,6 @@ export async function analyzeVideoWithGemini(
     const rawResult = JSON.parse(response.text.trim());
     const { verdict, confidence } = determineVerdict(rawResult, decisionType);
 
-    // Build structured result
     const result: AnalysisResult = {
       decision_type: decisionType,
       is_out: verdict === Verdict.OUT,
@@ -379,18 +379,18 @@ export async function analyzeVideoWithGemini(
       };
     }
 
-    // Override verdict in result
+    // Store the resolved verdict on the result
     (result as any)._verdict = verdict;
 
     return result;
   } catch (error) {
     console.error("Gemini Analysis Error:", error);
-    // Fallback — return an inconclusive result
+    // Return a clear NOT OUT fallback (field umpire's original decision stands)
     return {
       decision_type: decisionType,
       is_out: false,
       confidence: 0,
-      reasoning: "AI analysis failed. Reverting to field umpire's original decision.",
+      reasoning: "AI analysis failed. The field umpire's original decision stands.",
       lbw_details: decisionType === 'LBW' ? {
         pitching: 'In Line',
         impact: 'In Line',
@@ -415,39 +415,32 @@ export async function analyzeVideoWithGemini(
 }
 
 /**
- * Gets the final Verdict from an AnalysisResult, using DRS confidence rules.
+ * Gets the final Verdict from an AnalysisResult.
  */
 export function getVerdictFromResult(result: AnalysisResult, decisionType: DecisionType): Verdict {
-  // Check if verdict was already determined during analysis
   if ((result as any)._verdict) {
     return (result as any)._verdict;
   }
 
-  // Re-derive from data
-  if (result.confidence < 30) {
-    return Verdict.UMPIRES_CALL;
-  }
-  if (result.confidence >= 40 && result.confidence <= 60) {
-    return Verdict.UMPIRES_CALL;
-  }
-
-  // Type-specific checks
+  // Re-derive using the same ICC logic
   if (decisionType === 'LBW' && result.lbw_details) {
     if (result.lbw_details.pitching === 'Outside Leg') return Verdict.NOT_OUT;
     if (result.lbw_details.wickets === 'Missing') return Verdict.NOT_OUT;
+    if (result.lbw_details.impact === 'Outside Off') return Verdict.NOT_OUT;
     if (result.lbw_details.wickets === 'Clipping') return Verdict.UMPIRES_CALL;
   }
 
   if (decisionType === 'Run-out' && result.runout_details) {
-    if (result.runout_details.margin_cm < 5 && result.runout_details.margin_cm > 0) {
+    if (!result.runout_details.stumps_broken) return Verdict.NOT_OUT;
+    if (result.runout_details.batsman_in_crease) return Verdict.NOT_OUT;
+    if (result.runout_details.margin_cm > 0 && result.runout_details.margin_cm < 3) {
       return Verdict.UMPIRES_CALL;
     }
   }
 
   if (decisionType === 'Edge Detection' && result.edge_details) {
-    if (result.edge_details.spike_detected && !result.edge_details.hotspot_detected && result.confidence < 65) {
-      return Verdict.UMPIRES_CALL;
-    }
+    if (!result.edge_details.bat_involved && !result.edge_details.spike_detected) return Verdict.NOT_OUT;
+    if (result.edge_details.spike_detected && !result.edge_details.hotspot_detected) return Verdict.UMPIRES_CALL;
   }
 
   return result.is_out ? Verdict.OUT : Verdict.NOT_OUT;
