@@ -490,512 +490,567 @@ export default function App() {
 
   if (view === 'HOME') {
     return (
-      <div className="min-h-screen w-full bg-drs-bg flex items-center justify-center p-4 sm:p-6 overflow-hidden relative">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1540741282451-0a0f93a052d6?q=80&w=2070')] bg-cover bg-center opacity-10"></div>
-        <div className="absolute inset-0 bg-gradient-to-br from-brand/20 via-transparent to-transparent"></div>
+      <div className="home-wrap">
+        {/* Logo */}
+        <motion.div
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <div className="home-logo-row">
+            <div className="home-logo-mark">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <circle cx="9" cy="9" r="7" stroke="#0A0B0D" strokeWidth="2"/>
+                <path d="M9 4v10M5 7l4-3 4 3" stroke="#0A0B0D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <span className="home-wordmark">BallOut<span style={{color:'var(--amber)'}}>Pro</span></span>
+          </div>
+          <p className="home-subtitle">Bhopal Official DRS System · AI v2.0</p>
+        </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          className="home-form"
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative z-10 w-full max-w-xl"
+          transition={{ duration: 0.4, delay: 0.08 }}
         >
-          <div className="text-center mb-8 sm:mb-12">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-brand rounded-2xl flex items-center justify-center border border-white/20 shadow-2xl shadow-brand/40 mx-auto mb-4 sm:mb-6 rotate-12">
-              <Triangle className="text-white w-8 h-8 sm:w-10 sm:h-10 fill-white rotate-180" />
-            </div>
-            <h1 className="text-4xl sm:text-6xl font-black italic tracking-tighter uppercase mb-2">BallOut <span className="text-brand">Pro</span></h1>
-            <p className="text-slate-400 font-bold tracking-[0.2em] text-[10px] sm:text-xs uppercase">Bhopal Official DRS System • AI v2.0</p>
+          {/* Team A */}
+          <div className="form-group">
+            <label className="label">Batting Side</label>
+            <input
+              id="team-a-input"
+              className="form-input"
+              placeholder="Team A"
+              value={matchInfo.teamA}
+              onChange={e => setMatchInfo({ ...matchInfo, teamA: e.target.value })}
+            />
           </div>
 
-          <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 p-6 sm:p-8 rounded-3xl shadow-2xl space-y-6">
-            <div className="space-y-4">
-              <div>
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Match Teams</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  <input
-                    placeholder="Team A Name"
-                    value={matchInfo.teamA}
-                    onChange={e => setMatchInfo({ ...matchInfo, teamA: e.target.value })}
-                    className="bg-black/40 border border-slate-700 p-3 sm:p-4 rounded-xl text-sm focus:border-brand outline-none transition-all"
-                  />
-                  <input
-                    placeholder="Team B Name"
-                    value={matchInfo.teamB}
-                    onChange={e => setMatchInfo({ ...matchInfo, teamB: e.target.value })}
-                    className="bg-black/40 border border-slate-700 p-3 sm:p-4 rounded-xl text-sm focus:border-brand outline-none transition-all"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Venue / Location</label>
-                <input
-                  placeholder="e.g. Bhopal Old Camp Ground"
-                  value={matchInfo.location}
-                  onChange={e => setMatchInfo({ ...matchInfo, location: e.target.value })}
-                  className="w-full bg-black/40 border border-slate-700 p-3 sm:p-4 rounded-xl text-sm focus:border-brand outline-none transition-all"
-                />
-              </div>
-            </div>
-
-            <button
-              disabled={!matchInfo.teamA || !matchInfo.teamB}
-              onClick={() => setView('ANALYZER')}
-              className="w-full bg-brand hover:bg-brand-hover py-4 sm:py-5 rounded-2xl font-black text-xs sm:text-sm tracking-widest transition-all shadow-xl shadow-brand/20 disabled:opacity-50 uppercase italic flex items-center justify-center gap-2 sm:gap-3"
-            >
-              Start Session <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
+          <div className="vs-divider">
+            <div className="vs-line" />
+            <span className="vs-label">vs</span>
+            <div className="vs-line" />
           </div>
 
-          <div className="mt-6 sm:mt-8 flex justify-center gap-6 sm:gap-8">
-            <div className="text-center">
-              <p className="text-[10px] font-bold text-slate-600 uppercase mb-1">Status</p>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-[10px] font-mono text-slate-400">AI SERVER LIVE</span>
-              </div>
-            </div>
-            <div className="text-center">
-              <p className="text-[10px] font-bold text-slate-600 uppercase mb-1">Region</p>
-              <span className="text-[10px] font-mono text-slate-400">BHOPAL, IN</span>
-            </div>
+          {/* Team B */}
+          <div className="form-group">
+            <label className="label">Fielding Side</label>
+            <input
+              id="team-b-input"
+              className="form-input"
+              placeholder="Team B"
+              value={matchInfo.teamB}
+              onChange={e => setMatchInfo({ ...matchInfo, teamB: e.target.value })}
+            />
           </div>
 
-          <div className="mt-12 sm:mt-16 text-center">
-            <p className="text-[9px] sm:text-[10px] font-bold text-slate-500 tracking-widest uppercase">
-              Made with <span className="text-red-500">♥</span> by Veerendra, Aman, and Avhigyan
-            </p>
-            <p className="text-[9px] sm:text-[10px] font-black text-brand tracking-widest uppercase mt-1.5">
-              GDG BHOPAL
-            </p>
+          {/* Venue */}
+          <div className="form-group">
+            <label className="label">Venue</label>
+            <input
+              id="venue-input"
+              className="form-input"
+              placeholder="Ground name"
+              value={matchInfo.location}
+              onChange={e => setMatchInfo({ ...matchInfo, location: e.target.value })}
+            />
+          </div>
+
+          <div style={{ height: 4 }} />
+
+          <button
+            id="start-session-btn"
+            className="btn btn-primary"
+            disabled={!matchInfo.teamA || !matchInfo.teamB}
+            onClick={() => setView('ANALYZER')}
+          >
+            Initialize Session
+            <ChevronRight style={{ width: 14, height: 14 }} />
+          </button>
+
+          {/* Status row */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 8 }}>
+            <span className="badge active">
+              <span className="pulse-dot" style={{ color: 'var(--green)' }} />
+              AI Server Live
+            </span>
+            <span className="badge">Bhopal, IN</span>
+            <span className="badge">Gemini 2.0</span>
           </div>
         </motion.div>
+
+        {/* Footer */}
+        <p style={{ marginTop: 48, fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)', letterSpacing: '0.14em', textTransform: 'uppercase', textAlign: 'center' }}>
+          Made with ♥ by Veerendra, Aman & Avhigyan · GDG Bhopal
+        </p>
       </div>
     );
   }
 
+  // ── Confidence bar class helper ──────────────────────────
+  const confClass = (c: number | null) =>
+    c === null ? '' : c >= 70 ? 'hi' : c >= 45 ? 'mid' : 'low';
+
+  const verdictKey = verdict === Verdict.OUT ? 'out' : verdict === Verdict.UMPIRES_CALL ? 'umpires-call' : 'not-out';
+
   return (
-    <div className="min-h-[100dvh] lg:h-screen w-full flex flex-col bg-drs-bg lg:overflow-hidden font-sans">
-      {/* Header */}
-      <header className="h-16 lg:h-20 border-b border-slate-800 bg-drs-bg/80 backdrop-blur-md px-4 lg:px-8 flex items-center justify-between shrink-0 z-50">
-        <div className="flex items-center gap-3 lg:gap-4">
-          <div
-            onClick={() => setView('HOME')}
-            className="w-10 h-10 lg:w-12 lg:h-12 bg-brand rounded-lg flex items-center justify-center border border-white/20 shadow-lg shadow-brand/20 cursor-pointer"
-          >
-            <Triangle className="text-white w-5 h-5 lg:w-7 lg:h-7 fill-white rotate-180" />
+    <div className="analyzer-wrap">
+      {/* ── Top bar ───────────────────────────────────────── */}
+      <div className="topbar">
+        {/* Logo */}
+        <div
+          className="topbar-logo"
+          onClick={() => setView('HOME')}
+          style={{ cursor: 'pointer' }}
+          id="back-home-btn"
+        >
+          <div className="topbar-logo-mark">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <circle cx="6" cy="6" r="4.5" stroke="#0A0B0D" strokeWidth="1.5"/>
+              <path d="M6 3v6M3.5 5l2.5-2 2.5 2" stroke="#0A0B0D" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </div>
-          <div>
-            <h1 className="text-xl lg:text-2xl font-black tracking-tighter leading-none italic uppercase">BallOut</h1>
-            <div className="flex items-center gap-2">
-              <p className="text-[8px] lg:text-[10px] text-brand uppercase tracking-widest font-bold">PRO MODE</p>
-            </div>
-          </div>
+          BallOut<span style={{ color: 'var(--amber)' }}>Pro</span>
         </div>
 
-        <div className="hidden md:flex items-center gap-6">
-          <div className="text-right">
-            <p className="text-[10px] lg:text-xs text-slate-500 uppercase font-semibold">Live Match</p>
-            <p className="text-xs lg:text-sm font-black uppercase text-brand tracking-tighter">{matchInfo.teamA} VS {matchInfo.teamB}</p>
+        <div style={{ flex: 1 }} />
+
+        {/* Match chip */}
+        {matchInfo.teamA && matchInfo.teamB && (
+          <div className="match-chip">
+            <span className="label label-white">{matchInfo.teamA}</span>
+            <span className="label" style={{ color: 'var(--amber)' }}>vs</span>
+            <span className="label label-white">{matchInfo.teamB}</span>
           </div>
-          <div className="h-8 w-[1px] bg-slate-800"></div>
-          <div className="flex flex-col items-end">
-            <p className="text-[8px] lg:text-[10px] text-slate-500 uppercase font-bold">Venue</p>
-            <span className="text-[10px] lg:text-xs font-medium text-slate-300">{matchInfo.location}</span>
-          </div>
-        </div>
-      </header>
+        )}
 
-      {/* Main Layout Grid */}
-      <main className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-0 lg:overflow-hidden">
+        <span className="badge">{matchInfo.location}</span>
 
-        {/* Left Section: Video Analysis Viewport */}
-        <section className="h-[45vh] min-h-[280px] sm:min-h-[300px] sm:h-[50vh] lg:h-full lg:col-span-8 bg-black relative flex items-center justify-center lg:border-r border-b lg:border-b-0 border-slate-800 shrink-0 lg:shrink overflow-hidden group">
-          {status === DecisionStatus.ANALYZING && <div className="scanline" />}
+        {isLive && <span className="badge live"><span className="pulse-dot" />Live</span>}
 
-          <div className="w-full h-full relative bg-gradient-to-t from-slate-900/50 to-drs-bg flex flex-col items-center justify-center">
-            {/* Visual Overlays for Technical Feel */}
-            <div className="absolute top-4 left-4 sm:top-6 sm:left-6 flex flex-col gap-1 sm:gap-2 z-30 pointer-events-none">
-              <span className="bg-black/60 px-2 sm:px-3 py-0.5 sm:py-1 text-[8px] sm:text-[10px] rounded border border-white/20 font-mono tracking-wider text-white uppercase backdrop-blur-sm">Cam-01: Side-on</span>
-              <span className="bg-black/60 px-2 sm:px-3 py-0.5 sm:py-1 text-[8px] sm:text-[10px] rounded border border-white/20 font-mono tracking-wider text-white uppercase backdrop-blur-sm">FPS: 120.4</span>
-              {isLive && (
-                <span className="bg-green-500/80 px-2 sm:px-3 py-0.5 sm:py-1 text-[8px] sm:text-[10px] rounded border border-white/20 font-mono tracking-wider text-white uppercase backdrop-blur-sm animate-pulse">Live Active</span>
-              )}
+        <button
+          id="export-btn"
+          className="btn btn-ghost"
+          onClick={exportDecisionCard}
+          disabled={!verdict}
+          style={{ fontSize: 9 }}
+        >
+          <Zap style={{ width: 11, height: 11 }} />
+          Export
+        </button>
+      </div>
+
+      {/* ── Main grid ─────────────────────────────────────── */}
+      <div className="main-grid">
+
+        {/* ── Video panel (left) ────────────────────────── */}
+        <div className="video-panel">
+          <div className="video-stage">
+            {/* Corner brackets — broadcast overlay feel */}
+            <div className="corner-tl" />
+            <div className="corner-tr" />
+            <div className="corner-bl" />
+            <div className="corner-br" />
+
+            {/* Camera / file label */}
+            <div style={{
+              position: 'absolute', top: 16, left: 16, zIndex: 20,
+              display: 'flex', flexDirection: 'column', gap: 4, pointerEvents: 'none'
+            }}>
+              <span className="badge">{isLive ? 'Cam-01 · Live' : selectedFile ? 'Clip loaded' : 'Cam-01 · Side-on'}</span>
+              <span className="badge">120.4 fps</span>
             </div>
 
-            {/* Content Area */}
-            <div className="w-full h-full flex items-center justify-center p-0">
-              <input type="file" ref={fileInputRef} className="hidden" accept="video/*" onChange={onFileChange} />
+            <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="video/*" onChange={onFileChange} />
 
-              {isLive ? (
+            {/* Content: live / file / empty */}
+            {isLive ? (
+              <video
+                ref={(el) => {
+                  // @ts-ignore
+                  videoRef.current = el;
+                  if (el && streamRef.current && el.srcObject !== streamRef.current) {
+                    el.srcObject = streamRef.current;
+                    el.play().catch(console.error);
+                  }
+                }}
+                autoPlay playsInline muted
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onLoadedMetadata={e => e.currentTarget.play().catch(console.error)}
+              />
+            ) : selectedFile ? (
+              <div style={{ width: '100%', height: '100%', position: 'relative' }}>
                 <video
-                  ref={(el) => {
-                    // @ts-ignore
-                    videoRef.current = el;
-                    if (el && streamRef.current && el.srcObject !== streamRef.current) {
-                      el.srcObject = streamRef.current;
-                      el.play().catch(console.error);
-                    }
-                  }}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full h-full object-cover bg-black"
-                  onLoadedMetadata={(e) => {
-                    e.currentTarget.play().catch(console.error);
-                  }}
+                  src={URL.createObjectURL(selectedFile)}
+                  controls
+                  style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#050608' }}
                 />
-              ) : selectedFile ? (
-                <div className="w-full h-full relative group">
-                  <video
-                    src={URL.createObjectURL(selectedFile)}
-                    controls
-                    className="w-full h-full object-contain bg-black"
-                  />
-                  <button
-                    onClick={() => setSelectedFile(null)}
-                    className="absolute top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-full text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                  >
-                    Remove Video
-                  </button>
-                </div>
-              ) : (
-                <div className="p-4 sm:p-12 text-center w-full max-w-sm mx-auto z-10 relative">
-                  {status === DecisionStatus.IDLE && !verdict && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="cursor-pointer group bg-black/40 sm:bg-transparent backdrop-blur-sm sm:backdrop-blur-none p-4 sm:p-0 rounded-2xl border border-white/5 sm:border-none"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <div className={`w-14 h-14 sm:w-24 sm:h-24 rounded-2xl bg-white/5 border-2 border-dashed border-white/10 group-hover:border-brand flex items-center justify-center mx-auto mb-3 sm:mb-6 transition-colors`}>
-                        <Upload className="w-6 h-6 sm:w-10 sm:h-10 text-white/30 group-hover:text-brand transition-colors" />
-                      </div>
-                      <h3 className="text-lg sm:text-2xl font-bold tracking-tight mb-1 sm:mb-2 text-white">
-                        Drop Match Footage
-                      </h3>
-                      <p className="text-slate-400 text-[10px] sm:text-sm max-w-[220px] sm:max-w-xs mx-auto">
-                        Upload local match video for AI-powered trajectory analysis
-                      </p>
-                    </motion.div>
-                  )}
-                </div>
-              )}
-
-              {status === DecisionStatus.ANALYZING && (
-                <div className="w-full max-w-sm space-y-6 text-center z-20 absolute inset-0 m-auto flex flex-col items-center justify-center bg-black/40 backdrop-blur-md rounded-3xl p-12">
-                  <div className="relative inline-block">
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                      className="w-40 h-40 rounded-full border border-brand/30 border-t-brand"
-                    />
-                    <Cpu className="absolute inset-0 m-auto w-12 h-12 text-brand animate-pulse" />
-                  </div>
-                  <div className="space-y-3 w-full">
-                    <div className="flex justify-between items-end">
-                      <span className="text-[10px] font-bold text-brand uppercase tracking-widest animate-pulse">AI Umpire Thinking...</span>
-                      <span className="text-xs font-mono text-slate-400">{Math.round(progress)}%</span>
-                    </div>
-                    <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
-                      <motion.div className="h-full bg-brand" animate={{ width: `${progress}%` }} />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <AnimatePresence>
-                {status === DecisionStatus.COMPLETED && verdict && (
-                  <motion.div
-                    initial={{ scale: 0.5, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className={`z-30 text-center absolute inset-0 m-auto flex flex-col items-center justify-center p-6 sm:p-12 bg-black/40 backdrop-blur-md rounded-3xl ${
-                      verdict === Verdict.OUT ? 'verdict-out' : verdict === Verdict.UMPIRES_CALL ? '' : 'verdict-not-out'
-                    }`}
-                  >
-                    <div className={`
-                      inline-block px-8 py-4 sm:px-12 sm:py-6 rounded-lg border-4 shadow-2xl transition-all duration-500
-                      ${verdict === Verdict.OUT
-                        ? 'bg-drs-red border-red-500 shadow-red-900/40'
-                        : verdict === Verdict.UMPIRES_CALL
-                          ? 'bg-amber-600 border-amber-400 shadow-amber-900/40'
-                          : 'bg-drs-green border-green-500 shadow-green-900/40'}
-                    `}>
-                      <h3 className={`font-black italic tracking-tighter text-white drop-shadow-lg ${
-                        verdict === Verdict.UMPIRES_CALL ? 'text-3xl sm:text-5xl' : 'text-5xl sm:text-8xl'
-                      }`}>
-                        {verdict}
-                      </h3>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-6 sm:mt-8 items-center">
-                      <p className="text-slate-400 font-medium bg-black/40 backdrop-blur-sm py-2 px-4 rounded-full inline-block text-xs sm:text-base">
-                        AI Confidence: <span className="text-white">{confidence ?? 0}%</span>
-                      </p>
-                      <button
-                        onClick={exportDecisionCard}
-                        className="bg-brand hover:bg-brand-hover text-white text-[10px] font-black uppercase px-6 py-2.5 rounded-full shadow-lg shadow-brand/20 transition-all flex items-center justify-center gap-2 w-full sm:w-auto"
-                      >
-                        <Zap className="w-3 h-3" /> Export Report
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Bottom Left: Trace Indicators */}
-            <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6 flex gap-4 pointer-events-none hidden sm:flex">
-              <div className="bg-black/60 backdrop-blur-md p-4 rounded-xl border border-slate-800 w-48">
-                <p className="text-[9px] text-slate-500 uppercase font-bold mb-3">UltraEdge Track</p>
-                <div className="flex items-end gap-[2px] h-12 grayscale opacity-50">
-                  {[4, 7, 3, 10, 15, 30, 22, 12, 8, 5, 3, 6, 2].map((h, i) => (
-                    <div key={i} className="flex-1 bg-brand h-full" style={{ height: `${h}%` }} />
-                  ))}
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => setSelectedFile(null)}
+                  style={{
+                    position: 'absolute', top: 12, right: 12,
+                    zIndex: 10, fontSize: 9, padding: '5px 10px'
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div
+                className="drop-zone"
+                id="drop-zone"
+                style={{ width: '90%', maxWidth: 360 }}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload style={{ width: 28, height: 28, color: 'var(--muted)' }} />
+                <div>
+                  <p style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, color: 'var(--white-70)', marginBottom: 4 }}>
+                    Drop match footage
+                  </p>
+                  <p style={{ fontFamily: 'var(--sans)', fontSize: 11, color: 'var(--muted)', lineHeight: 1.5 }}>
+                    Upload a local clip or use live camera.<br />
+                    Or click Analyze Decision for a demo.
+                  </p>
                 </div>
               </div>
+            )}
+
+            {/* Analyzing overlay */}
+            {status === DecisionStatus.ANALYZING && (
+              <div style={{
+                position: 'absolute', inset: 0, zIndex: 30,
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                justifyContent: 'center', gap: 24,
+                background: 'rgba(10,11,13,0.80)', backdropFilter: 'blur(8px)'
+              }}>
+                <div className="spinner" />
+                <div style={{ textAlign: 'center', width: 200 }}>
+                  <p className="analyzing-text" style={{
+                    fontFamily: 'var(--mono)', fontSize: 9,
+                    fontWeight: 700, letterSpacing: '0.18em',
+                    textTransform: 'uppercase', marginBottom: 12
+                  }}>
+                    AI Umpire Processing…
+                  </p>
+                  <div className="progress-track">
+                    <div className="progress-fill" style={{ width: `${progress}%` }} />
+                  </div>
+                  <p style={{ fontFamily: 'var(--mono)', fontSize: 9, color: 'var(--muted)', marginTop: 6 }}>
+                    {Math.round(progress)}%
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Verdict overlay */}
+            <AnimatePresence>
+              {status === DecisionStatus.COMPLETED && verdict && (
+                <motion.div
+                  key="verdict"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="verdict-card"
+                >
+                  <div className={`verdict-banner ${verdictKey}`}>
+                    <span className="verdict-eyebrow">Third Umpire Decision</span>
+                    <span className={`verdict-text ${verdictKey}`}>{verdict}</span>
+                    {confidence !== null && (
+                      <span style={{
+                        fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 600,
+                        color: 'var(--muted-hi)', letterSpacing: '0.08em',
+                        position: 'relative', zIndex: 2, marginTop: 4
+                      }}>
+                        AI Confidence: {confidence}%
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    id="new-appeal-btn"
+                    className="btn btn-ghost"
+                    onClick={handleReset}
+                    style={{ marginTop: 8 }}
+                  >
+                    <RefreshCcw style={{ width: 12, height: 12 }} />
+                    New Appeal
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* UltraEdge graph — bottom left (decorative when no data) */}
+            <div style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0,
+              padding: '8px 16px 10px',
+              borderTop: '1px solid var(--rule)',
+              background: 'var(--panel)',
+              display: 'flex', alignItems: 'center', gap: 12, zIndex: 10
+            }}>
+              <span className="label" style={{ flexShrink: 0 }}>UltraEdge</span>
+              <div className="edge-graph" style={{ flex: 1 }}>
+                {(() => {
+                  const edge = analysisResult?.edge_details;
+                  const hasSpikeAt = edge?.spike_detected ? 8 : -1;
+                  return [3,5,2,4,3,6,4,7,edge?.spike_detected?38:3,5,3,4,2,5,3,2,4,3,5,2].map((h, i) => (
+                    <div
+                      key={i}
+                      className={`edge-bar${i === hasSpikeAt ? ' spike' : ''}`}
+                      style={{ height: `${h * (status === DecisionStatus.COMPLETED ? 1 : 0.3)}%`, minHeight: 2 }}
+                    />
+                  ));
+                })()}
+              </div>
+              {analysisResult?.edge_details && (
+                <span className={`badge ${analysisResult.edge_details.spike_detected ? 'amber' : ''}`} style={{ flexShrink: 0, fontSize: 7 }}>
+                  {analysisResult.edge_details.spike_detected ? 'Spike' : 'Flat'}
+                </span>
+              )}
             </div>
           </div>
-        </section>
+        </div>
 
-        {/* Right Section: Decision Panel */}
-        <section className="lg:col-span-4 bg-drs-card flex flex-col h-auto lg:h-full">
-          <div className="p-4 lg:p-6 flex-1 lg:overflow-y-auto no-scrollbar">
-            <h2 className="text-[10px] lg:text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 lg:mb-6">Decision Matrix</h2>
+        {/* ── Decision panel (right) ──────────────────────── */}
+        <div className="decision-panel">
 
-            {/* Analysis Type Tabs */}
-            <div className="grid grid-cols-3 gap-1 bg-black/40 p-1 rounded-xl border border-slate-800 mb-4 lg:mb-6">
+          {/* Decision type tabs */}
+          <div className="panel-section">
+            <p className="panel-label">Analysis Type</p>
+            <div className="tab-strip" id="decision-type-tabs">
               {(['LBW', 'Run-out', 'Edge Detection'] as const).map(tab => (
                 <button
                   key={tab}
+                  id={`tab-${tab.toLowerCase().replace(' ', '-')}`}
+                  className={`tab-btn${activeTab === tab ? ' active' : ''}`}
                   onClick={() => setActiveTab(tab)}
-                  className={`
-                    py-2 rounded-lg text-[8px] sm:text-[10px] font-bold uppercase transition-all whitespace-nowrap
-                    ${activeTab === tab ? 'bg-slate-800 text-brand' : 'text-slate-500 hover:text-slate-300'}
-                  `}
                 >
                   {tab === 'Edge Detection' ? 'Edge' : tab}
                 </button>
               ))}
             </div>
-
-            <div className="space-y-4">
-              {/* Decision-Type-Specific Tracking Panel */}
-              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 lg:p-5">
-                <div className="flex justify-between items-center mb-4">
-                  <p className="text-[9px] lg:text-[10px] text-brand font-bold uppercase tracking-wider">{activeTab} Tracking</p>
-                  <Radio className="w-3 h-3 text-red-500 animate-pulse" />
-                </div>
-
-                {/* LBW Tracking */}
-                {activeTab === 'LBW' && (
-                  <div className="grid grid-cols-3 gap-2">
-                    {(() => {
-                      const lbw = analysisResult?.lbw_details;
-                      const pitching = lbw?.pitching || (verdict ? 'In Line' : '—');
-                      const impact = lbw?.impact || (verdict ? 'In Line' : '—');
-                      const wickets = lbw?.wickets || (verdict ? (verdict === Verdict.OUT ? 'Hitting' : 'Missing') : '—');
-                      const pitchColor = pitching === 'Outside Leg' ? 'text-drs-red' : pitching === 'In Line' ? 'text-drs-green' : 'text-amber-400';
-                      const impactColor = impact === 'Outside Off' || impact === 'Outside Leg' ? 'text-drs-red' : 'text-drs-green';
-                      const wicketsColor = wickets === 'Hitting' ? 'text-drs-green' : wickets === 'Clipping' ? 'text-amber-400' : wickets === 'Missing' ? 'text-drs-red' : 'text-slate-500';
-                      return [
-                        { label: 'PITCHING', value: pitching, color: pitchColor },
-                        { label: 'IMPACT', value: impact, color: impactColor },
-                        { label: 'WICKETS', value: wickets, color: wicketsColor }
-                      ].map((stat, i) => (
-                        <div key={i} className="bg-black/40 border border-slate-800 p-2 rounded text-center">
-                          <p className="text-[8px] text-slate-500 mb-1 font-bold">{stat.label}</p>
-                          <p className={`text-[10px] lg:text-xs font-black uppercase ${stat.color}`}>{stat.value}</p>
-                        </div>
-                      ));
-                    })()}
-                  </div>
-                )}
-
-                {/* Run-out Tracking */}
-                {activeTab === 'Run-out' && (
-                  <div className="grid grid-cols-3 gap-2">
-                    {(() => {
-                      const ro = analysisResult?.runout_details;
-                      const crease = ro ? (ro.batsman_in_crease ? 'SAFE' : 'SHORT') : '—';
-                      const stumps = ro ? (ro.stumps_broken ? 'BROKEN' : 'INTACT') : '—';
-                      const margin = ro ? `${ro.margin_cm}cm` : '—';
-                      return [
-                        { label: 'CREASE', value: crease, color: crease === 'SAFE' ? 'text-drs-green' : crease === 'SHORT' ? 'text-drs-red' : 'text-slate-500' },
-                        { label: 'STUMPS', value: stumps, color: stumps === 'BROKEN' ? 'text-drs-red' : stumps === 'INTACT' ? 'text-drs-green' : 'text-slate-500' },
-                        { label: 'MARGIN', value: margin, color: ro && ro.margin_cm < 5 ? 'text-amber-400' : 'text-slate-300' }
-                      ].map((stat, i) => (
-                        <div key={i} className="bg-black/40 border border-slate-800 p-2 rounded text-center">
-                          <p className="text-[8px] text-slate-500 mb-1 font-bold">{stat.label}</p>
-                          <p className={`text-[10px] lg:text-xs font-black uppercase ${stat.color}`}>{stat.value}</p>
-                        </div>
-                      ));
-                    })()}
-                  </div>
-                )}
-
-                {/* Edge Detection Tracking */}
-                {activeTab === 'Edge Detection' && (
-                  <div className="grid grid-cols-3 gap-2">
-                    {(() => {
-                      const edge = analysisResult?.edge_details;
-                      const spike = edge ? (edge.spike_detected ? 'DETECTED' : 'FLAT') : '—';
-                      const hotspot = edge ? (edge.hotspot_detected ? 'CONFIRMED' : 'NONE') : '—';
-                      const bat = edge ? (edge.bat_involved ? 'CONTACT' : 'NO CONTACT') : '—';
-                      return [
-                        { label: 'ULTRA EDGE', value: spike, color: spike === 'DETECTED' ? 'text-drs-green' : spike === 'FLAT' ? 'text-drs-red' : 'text-slate-500' },
-                        { label: 'HOTSPOT', value: hotspot, color: hotspot === 'CONFIRMED' ? 'text-drs-green' : hotspot === 'NONE' ? 'text-drs-red' : 'text-slate-500' },
-                        { label: 'BAT', value: bat, color: bat === 'CONTACT' ? 'text-drs-green' : bat === 'NO CONTACT' ? 'text-drs-red' : 'text-slate-500' }
-                      ].map((stat, i) => (
-                        <div key={i} className="bg-black/40 border border-slate-800 p-2 rounded text-center">
-                          <p className="text-[8px] text-slate-500 mb-1 font-bold">{stat.label}</p>
-                          <p className={`text-[10px] lg:text-xs font-black uppercase ${stat.color}`}>{stat.value}</p>
-                        </div>
-                      ));
-                    })()}
-                  </div>
-                )}
-              </div>
-
-              {/* AI Reasoning */}
-              {reasoning && (
-                <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 lg:p-5">
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <div className="flex items-center gap-2">
-                      <Activity className="w-3 h-3 text-brand" />
-                      <p className="text-[9px] lg:text-[10px] text-brand font-bold uppercase tracking-wider">AI Reasoning</p>
-                    </div>
-                    {isDemoMode && (
-                      <span className="text-[7px] lg:text-[8px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full">
-                        Demo Mode
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[10px] lg:text-xs text-slate-300 leading-relaxed">{reasoning}</p>
-                  {isDemoMode && (
-                    <p className="text-[9px] text-slate-500 mt-2 italic">Upload a video or use live camera to run real AI analysis.</p>
-                  )}
-                </div>
-              )}
-
-
-              {/* Advanced Metadata */}
-              <div className="grid grid-cols-2 gap-3 lg:gap-4">
-                <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3 lg:p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Clock className="w-3 h-3 text-slate-500" />
-                    <span className="text-[8px] lg:text-[9px] text-slate-500 font-bold uppercase">Timestamp</span>
-                  </div>
-                  <p className="text-[10px] lg:text-xs font-mono">{new Date().toLocaleTimeString()}</p>
-                </div>
-                <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3 lg:p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Layers className="w-3 h-3 text-slate-500" />
-                    <span className="text-[8px] lg:text-[9px] text-slate-500 font-bold uppercase">Confidence</span>
-                  </div>
-                  <p className={`text-[10px] lg:text-xs font-mono font-bold ${
-                    confidence === null ? 'text-slate-500' : confidence >= 70 ? 'text-drs-green' : confidence >= 40 ? 'text-amber-400' : 'text-drs-red'
-                  }`}>{confidence !== null ? `${confidence}%` : '—'}</p>
-                </div>
-              </div>
-            </div>
           </div>
 
-          {/* Action Buttons Footer of Sidebar */}
-          <div className="p-4 lg:p-6 bg-black/20 border-t border-slate-800 space-y-3 shrink-0">
+          {/* Tracking data */}
+          <div className="panel-section">
+            <p className="panel-label">
+              {activeTab} Tracking
+              <Radio style={{ width: 9, height: 9, color: status === DecisionStatus.ANALYZING ? 'var(--red)' : 'var(--muted)' }} />
+            </p>
+
+            {activeTab === 'LBW' && (() => {
+              const lbw = analysisResult?.lbw_details;
+              const pitch = lbw?.pitching ?? '—';
+              const imp = lbw?.impact ?? '—';
+              const wkt = lbw?.wickets ?? '—';
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+                  <div className="stat-cell">
+                    <span className="label">Pitching</span>
+                    <span className={`stat-value ${pitch === 'Outside Leg' ? 'out' : pitch === 'In Line' ? 'safe' : pitch === '—' ? 'muted' : 'warn'}`}>{pitch}</span>
+                  </div>
+                  <div className="stat-cell">
+                    <span className="label">Impact</span>
+                    <span className={`stat-value ${imp === 'Outside Off' || imp === 'Outside Leg' ? 'out' : imp === 'In Line' ? 'safe' : 'muted'}`}>{imp}</span>
+                  </div>
+                  <div className="stat-cell">
+                    <span className="label">Wickets</span>
+                    <span className={`stat-value ${wkt === 'Hitting' ? 'safe' : wkt === 'Missing' ? 'out' : wkt === 'Clipping' ? 'warn' : 'muted'}`}>{wkt}</span>
+                  </div>
+                  {lbw && (
+                    <div className="stat-cell" style={{ gridColumn: '1 / -1' }}>
+                      <span className="label">Ball Tracking Confidence</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+                        <div className="conf-bar-track" style={{ flex: 1 }}>
+                          <div className={`conf-bar-fill ${confClass(lbw.ball_tracking_confidence)}`} style={{ width: `${lbw.ball_tracking_confidence}%` }} />
+                        </div>
+                        <span className="stat-value">{lbw.ball_tracking_confidence}%</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {activeTab === 'Run-out' && (() => {
+              const ro = analysisResult?.runout_details;
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+                  <div className="stat-cell">
+                    <span className="label">Crease</span>
+                    <span className={`stat-value ${ro === null ? 'muted' : ro?.batsman_in_crease ? 'safe' : 'out'}`}>{ro ? (ro.batsman_in_crease ? 'Safe' : 'Short') : '—'}</span>
+                  </div>
+                  <div className="stat-cell">
+                    <span className="label">Stumps</span>
+                    <span className={`stat-value ${ro === null ? 'muted' : ro?.stumps_broken ? 'out' : 'safe'}`}>{ro ? (ro.stumps_broken ? 'Broken' : 'Intact') : '—'}</span>
+                  </div>
+                  <div className="stat-cell">
+                    <span className="label">Margin</span>
+                    <span className={`stat-value ${ro === null ? 'muted' : ro.margin_cm < 3 ? 'warn' : ro.margin_cm === 0 ? 'safe' : 'out'}`}>{ro ? `${ro.margin_cm} cm` : '—'}</span>
+                  </div>
+                  <div className="stat-cell" style={{ gridColumn: '1 / -1' }}>
+                    <span className="label">Hit Type</span>
+                    <span className="stat-value muted">{ro ? (ro.direct_hit ? 'Direct Hit' : 'Keeper Collect') : '—'}</span>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {activeTab === 'Edge Detection' && (() => {
+              const edge = analysisResult?.edge_details;
+              const items = [
+                { label: 'UltraEdge', val: edge ? (edge.spike_detected ? 'Spike' : 'Flat') : '—', cls: edge?.spike_detected ? 'warn' : edge ? 'safe' : 'muted' },
+                { label: 'Hotspot', val: edge ? (edge.hotspot_detected ? 'Mark' : 'None') : '—', cls: edge?.hotspot_detected ? 'safe' : edge ? 'out' : 'muted' },
+                { label: 'Bat', val: edge ? (edge.bat_involved ? 'Contact' : 'Clear') : '—', cls: edge?.bat_involved ? 'warn' : edge ? 'safe' : 'muted' },
+                { label: 'Pad', val: edge ? (edge.pad_involved ? 'Hit' : 'Clear') : '—', cls: edge?.pad_involved ? 'warn' : edge ? 'safe' : 'muted' },
+                { label: 'Sound', val: edge ? (edge.sound_anomaly ? 'Click' : 'Clean') : '—', cls: edge?.sound_anomaly ? 'warn' : edge ? 'safe' : 'muted' },
+              ];
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+                  {items.slice(0,3).map(({ label, val, cls }) => (
+                    <div key={label} className="stat-cell">
+                      <span className="label">{label}</span>
+                      <span className={`stat-value ${cls}`}>{val}</span>
+                    </div>
+                  ))}
+                  {items.slice(3).map(({ label, val, cls }) => (
+                    <div key={label} className="stat-cell">
+                      <span className="label">{label}</span>
+                      <span className={`stat-value ${cls}`}>{val}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Confidence */}
+          {confidence !== null && (
+            <div className="panel-section">
+              <p className="panel-label">AI Confidence</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div className="conf-bar-track" style={{ flex: 1 }}>
+                  <div className={`conf-bar-fill ${confClass(confidence)}`} style={{ width: `${confidence}%` }} />
+                </div>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: 'var(--white)', minWidth: 32, textAlign: 'right' }}>
+                  {confidence}%
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* AI Reasoning */}
+          {reasoning && (
+            <div className="panel-section">
+              <p className="panel-label">
+                AI Reasoning
+                {isDemoMode && (
+                  <span className="badge amber" style={{ fontSize: 7 }}>Demo</span>
+                )}
+              </p>
+              <div className="reasoning-block">
+                {reasoning}
+                {isDemoMode && (
+                  <p style={{ color: 'var(--muted)', fontSize: 10, marginTop: 8, fontStyle: 'italic' }}>
+                    Upload a video or use live camera to run real AI analysis.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Session history */}
+          {history.length > 0 && (
+            <div className="panel-section" style={{ flex: 1 }}>
+              <p className="panel-label">
+                Session Log
+                <span className="badge">{history.length}</span>
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {history.slice(0, 6).map(item => {
+                  const v = item.result || item.verdict;
+                  const dotCls = v === Verdict.OUT ? 'out' : v === Verdict.UMPIRES_CALL ? 'uc' : 'not-out';
+                  return (
+                    <div key={item.id} className="history-item">
+                      <div className={`history-dot ${dotCls}`} />
+                      <span className="label label-white" style={{ flex: 1 }}>{item.decision_type || item.type}</span>
+                      <span className="label" style={{ color: v === Verdict.OUT ? 'var(--red)' : v === Verdict.UMPIRES_CALL ? 'var(--amber)' : 'var(--green)' }}>{v}</span>
+                      <span className="label" style={{ minWidth: 36, textAlign: 'right' }}>
+                        {item.timestamp?.toDate ? item.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'now'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── Action footer ─────────────────────────────── */}
+          <div className="action-footer">
             <button
+              id="analyze-btn"
+              className="btn btn-primary"
               onClick={handleAnalyze}
               disabled={status === DecisionStatus.ANALYZING}
-              className="w-full bg-brand hover:bg-brand-hover py-3 lg:py-4 rounded-xl font-black text-xs lg:text-sm tracking-widest transition-all shadow-lg shadow-brand/20 disabled:opacity-50 uppercase italic"
             >
               {status === DecisionStatus.ANALYZING ? (
-                <span className="flex items-center justify-center gap-2">
-                  <RefreshCcw className="w-4 h-4 animate-spin" /> Analyzing...
-                </span>
-              ) : 'Analyze Decision'}
+                <>
+                  <RefreshCcw style={{ width: 12, height: 12, animation: 'spin 1s linear infinite' }} />
+                  Analyzing…
+                </>
+              ) : (
+                <>
+                  <Cpu style={{ width: 12, height: 12 }} />
+                  Analyze Decision
+                </>
+              )}
             </button>
-            <div className="grid grid-cols-2 gap-2 lg:gap-3">
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
               <button
+                id="live-cam-btn"
+                className={`btn btn-ghost${isLive ? ' live' : ''}`}
                 onClick={toggleLive}
-                className={`py-2.5 lg:py-3 rounded-lg font-bold text-[9px] lg:text-[10px] uppercase tracking-wider transition-all ${isLive ? 'bg-red-500/20 text-red-500 border border-red-500/50' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+                style={isLive ? { color: 'var(--red)', borderColor: 'var(--red)', background: 'var(--red-dim)' } : {}}
               >
+                <Radio style={{ width: 11, height: 11 }} />
                 {isLive ? 'Stop Live' : 'Live Cam'}
               </button>
-              {isLive && videoDevices.length > 1 && (
-                <button
-                  onClick={switchCamera}
-                  className="bg-brand/20 text-brand border border-brand/50 py-2.5 lg:py-3 rounded-lg font-bold text-[9px] lg:text-[10px] uppercase tracking-wider"
-                >
-                  Switch Cam
-                </button>
-              )}
+
               <button
-                onClick={() => {
-                  setIsLive(false);
-                  fileInputRef.current?.click();
-                }}
-                className={`bg-slate-800 hover:bg-slate-700 py-2.5 lg:py-3 rounded-lg font-bold text-[9px] lg:text-[10px] text-slate-300 uppercase tracking-wider ${isLive && videoDevices.length > 1 ? 'col-span-2' : ''}`}
+                id="upload-clip-btn"
+                className="btn btn-ghost"
+                onClick={() => { setIsLive(false); fileInputRef.current?.click(); }}
               >
+                <Upload style={{ width: 11, height: 11 }} />
                 Upload Clip
               </button>
+
+              {isLive && videoDevices.length > 1 && (
+                <button className="btn btn-ghost" onClick={switchCamera} style={{ gridColumn: '1 / -1' }}>
+                  Switch Camera
+                </button>
+              )}
+
               <button
+                id="reset-btn"
+                className="btn btn-ghost"
                 onClick={handleReset}
-                className="bg-slate-800 hover:bg-slate-700 py-2.5 lg:py-3 rounded-lg font-bold text-[9px] lg:text-[10px] text-slate-300 uppercase tracking-wider col-span-2"
+                style={{ gridColumn: '1 / -1' }}
               >
+                <RefreshCcw style={{ width: 11, height: 11 }} />
                 Reset Session
               </button>
             </div>
 
-
+            <p style={{ fontFamily: 'var(--mono)', fontSize: 8, color: 'var(--muted)', textAlign: 'center', letterSpacing: '0.10em', textTransform: 'uppercase' }}>
+              Made with ♥ by Veerendra, Aman & Avhigyan · GDG Bhopal
+            </p>
           </div>
-        </section>
-      </main>
-
-      {/* Footer Log */}
-      <footer className="h-14 lg:h-20 bg-drs-bg border-t border-slate-800 flex items-center px-4 lg:px-8 gap-4 lg:gap-6 shrink-0">
-        <div className="flex items-center gap-2 text-slate-500 shrink-0">
-          <History className="w-4 h-4 hidden sm:block" />
-          <span className="text-[9px] lg:text-[10px] uppercase font-black tracking-widest mt-0.5">Logs</span>
         </div>
-
-        <div className="flex flex-1 gap-4 overflow-x-auto no-scrollbar py-2">
-          <AnimatePresence mode="popLayout">
-            {history.map((item) => (
-              <motion.div
-                layout
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                key={item.id}
-                className="flex-none bg-slate-900/80 px-4 py-2 rounded-lg border border-slate-800 flex items-center gap-3 hover:border-brand hover:bg-slate-800 transition-all cursor-pointer group"
-              >
-                <div className="text-[10px] font-bold text-slate-300 uppercase group-hover:text-brand">{item.decision_type || item.type}</div>
-                <div className={`text-[10px] px-1.5 py-0.5 rounded font-black italic tracking-tighter ${item.result === Verdict.OUT || item.verdict === Verdict.OUT ? 'bg-red-900/40 text-red-400' : 'bg-green-900/40 text-green-400'}`}>
-                  {item.result || item.verdict}
-                </div>
-                <span className="text-[10px] text-slate-500 font-mono">
-                  {item.timestamp?.toDate ? item.timestamp.toDate().toLocaleTimeString() : (item.timestamp || 'Just now')}
-                </span>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-          {history.length === 0 && (
-            <p className="text-xs text-slate-600 italic flex items-center">Waiting for first analysis...</p>
-          )}
-        </div>
-
-        <div className="hidden lg:flex flex-col justify-center items-end shrink-0 ml-4 border-l border-slate-800 pl-6 h-full text-[9px] font-bold text-slate-500 tracking-widest uppercase">
-          <span>Made with <span className="text-red-500">♥</span> by</span>
-          <span className="text-brand mt-0.5">Veerendra, Aman & Avhigyan | GDG BHOPAL</span>
-        </div>
-      </footer>
-
-      {/* Mobile Footer Credit */}
-      <div className="py-5 bg-black border-t border-white/5 lg:hidden text-center shrink-0">
-        <p className="text-[9px] font-bold text-slate-500 tracking-[0.2em] uppercase">
-          Made with <span className="text-red-500">♥</span> by Veerendra, Aman, and Avhigyan
-        </p>
-        <p className="text-[10px] font-black text-brand tracking-[0.3em] uppercase mt-2">
-          GDG BHOPAL
-        </p>
       </div>
     </div>
   );
 }
+
